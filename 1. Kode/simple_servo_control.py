@@ -9,7 +9,11 @@ This code can be used for controlling servos by using a simple controller.
 
 #define the port of the arduino. each system may have its own port id
 #NOTE: This can be found from going to arduino ide --> Tools --> Ports
+#<<<<<<< Dawid_working
 port_id = '/dev/cu.usbmodem144401'
+#=======
+#port_id = '/dev/cu.usbmodem1411101'
+#>>>>>>> main
 
 #initialise serial interface
 arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
@@ -102,4 +106,6 @@ def write_servo():
                      round(math.degrees(ang3), 1))
 
     write_arduino(str(angles))
+
 root.mainloop() # running loop
+

@@ -1,4 +1,3 @@
-
 import multiprocessing as mp
 from multiprocessing import Queue
 import cvzone
@@ -14,19 +13,14 @@ For running both programs simultaneously we can use multithreading or multiproce
 """
 
 camera_port = 0
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(camera_port)
 cap.set(3, 1280)
 cap.set(4, 720)
 
 get, img = cap.read()
 h, w, _ = img.shape
 
-
-#<<<<<<< Dawid_working
-port_id = '/dev/cu.usbmodem144401'
-#=======
-#port_id = '/dev/cu.usbmodem1411101'
-#>>>>>>> main
+port_id = '/dev/cu.usbmodem1411101'
 # initialise serial interface
 arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
 
@@ -47,17 +41,18 @@ servo3_angle_limit_positive = 90
 servo3_angle_limit_negative = -90
 
 
+
+
 def ball_track(key1, queue):
 
     if key1:
         print('Ball tracking is initiated')
 
     myColorFinder = ColorFinder(False)  # if you want to find the color and calibrate the program we use this *(Debugging)
+    hsvVals = {'hmin': 0, 'smin': 65, 'vmin': 219, 'hmax': 179, 'smax': 255, 'vmax': 255}
 
-    hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}
+    center_point = [626, 337, 2210] # center point of the plate, calibrated
 
-
-    center_point = [626, 337, 2210]
 
     while True:
         get, img = cap.read()
@@ -68,14 +63,12 @@ def ball_track(key1, queue):
 
             data = round((countours[0]['center'][0] - center_point[0]) / 10), \
                    round((h - countours[0]['center'][1] - center_point[1]) / 10), \
-                   int(countours[0]['area'] - center_point[2])
+                   round(int(countours[0]['area'] - center_point[2])/100)
 
             queue.put(data)
-
-            print("The got coordinates for the ball are :", data)
-
+            #print("The got coordinates for the ball are :", data)
         else:
-            data = 'nil'
+            data = 'nil' # returns nil if we cant find the ball
             queue.put(data)
 
         imgStack = cvzone.stackImages([imgContour], 1, 1)
@@ -89,70 +82,36 @@ def servo_control(key2, queue):
         print('Servo controls are initiated')
 
 
-    def servo1_angle_assign(servo1_angle_passed):
-        global servo1_angle
-        servo1_angle = math.radians(float(servo1_angle_passed))
-        write_servo()
-
-    def servo2_angle_assign(servo2_angle_passed):
-        global servo2_angle
-        servo2_angle = math.radians(float(servo2_angle_passed))
-        write_servo()
-
-    def servo3_angle_assign(servo3_angle_passed):
-        global servo3_angle
-        servo3_angle = math.radians(float(servo3_angle_passed))
-        write_servo()
-
-    def all_angle_assign(all_angle_passed):
+    def all_angle_assign(angle_passed1,angle_passed2,angle_passed3):
         global servo1_angle, servo2_angle, servo3_angle
-        servo1_angle = math.radians(float(all_angle_passed))
-        servo2_angle = math.radians(float(all_angle_passed))
-        servo3_angle = math.radians(float(all_angle_passed))
+        servo1_angle = math.radians(float(angle_passed1))
+        servo2_angle = math.radians(float(angle_passed2))
+        servo3_angle = math.radians(float(angle_passed3))
         write_servo()
 
     root = Tk()
     root.resizable(0, 0)
 
-    w2 = Label(root, justify=LEFT, text="Simple Servo Controller")
-    w2.config(font=("Elephant", 30))
-    w2.grid(row=3, column=0, columnspan=2, padx=100)
+    def writeCoord():
+        """
+        Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
+        """
+        corrd_info = queue.get()
 
-    S1Lb = Label(root, text="Servo 1 Angle")
-    S1Lb.config(font=("Elephant", 15))
-    S1Lb.grid(row=5, column=0, pady=10)
+        if corrd_info == 'nil': # Checks if the output is nil
+            print('cant fins the ball :(')
+        else:
+            print('The position of the ball : ', corrd_info[2])
 
-    S2Lb = Label(root, text="Servo 2 Angle")
-    S2Lb.config(font=("Elephant", 15))
-    S2Lb.grid(row=10, column=0, pady=10)
+            if (-90 < corrd_info[0] < 90) and (-90 < corrd_info[1] < 90) and (-90 < corrd_info[2] < 90):
 
-    S3Lb = Label(root, text="Servo 3 Angle")
-    S3Lb.config(font=("Elephant", 15))
-    S3Lb.grid(row=15, column=0, pady=10)
-
-    S4Lb = Label(root, text="All Servos at once")
-    S4Lb.config(font=("Elephant", 15))
-    S4Lb.grid(row=20, column=0, pady=10)
-
-    servo1 = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=servo1_angle_assign)
-    servo1.grid(row=5, column=1)
-
-    servo2 = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=servo2_angle_assign)
-    servo2.grid(row=10, column=1)
-
-    servo3 = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=servo3_angle_assign)
-    servo3.grid(row=15, column=1)
-
-    all_at_once = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=all_angle_assign)
-    all_at_once.grid(row=20, column=1)
+                all_angle_assign(corrd_info[0],corrd_info[1],corrd_info[2])
+            else:
+                all_angle_assign(0,0,0)
 
     def write_arduino(data):
         print('The angles send to the arduino : ', data)
-        print('The position of the ball : ', queue.get())
+
         arduino.write(bytes(data, 'utf-8'))
 
     def write_servo():
@@ -165,6 +124,9 @@ def servo_control(key2, queue):
                          round(math.degrees(ang3), 1))
 
         write_arduino(str(angles))
+
+    while key2:
+        writeCoord()
 
     root.mainloop()  # running loop
 
