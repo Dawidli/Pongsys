@@ -13,18 +13,6 @@ from tkinter import *
 For running both programs simultaneously we can use multithreading or multiprocessing
 """
 
-camera_port = 0
-cap = cv2.VideoCapture(0)
-cap.set(3, 1280)
-cap.set(4, 720)
-
-get, img = cap.read()
-h, w, _ = img.shape
-
-
-port_id = '/dev/cu.usbmodem1411101'
-# initialise serial interface
-arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
 
 # define servo angles and set a value
 servo1_angle = 0
@@ -44,12 +32,19 @@ servo3_angle_limit_negative = -90
 
 
 def ball_track(key1, queue):
+    camera_port = 0
+    cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
+    cap.set(3, 1280)
+    cap.set(4, 720)
+
+    get, img = cap.read()
+    h, w, _ = img.shape
 
     if key1:
         print('Ball tracking is initiated')
 
     myColorFinder = ColorFinder(False)  # if you want to find the color and calibrate the program we use this *(Debugging)
-    hsvVals = {'hmin': 0, 'smin': 65, 'vmin': 219, 'hmax': 179, 'smax': 255, 'vmax': 255}
+    hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}
 
     center_point = [626, 337, 2210]
 
@@ -77,6 +72,9 @@ def ball_track(key1, queue):
 
 
 def servo_control(key2, queue):
+    port_id = 'COM3'
+    # initialise serial interface
+    arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
     if key2:
         print('Servo controls are initiated')
 
@@ -169,5 +167,5 @@ if __name__ == '__main__':
     p2 = mp.Process(target=servo_control,args=(key2, queue)) # initiate servo controls
     p1.start()
     p2.start()
-    p1.join()
-    p2.join()
+    #p1.join()
+    #p2.join()
