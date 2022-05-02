@@ -22,7 +22,11 @@ get, img = cap.read()
 h, w, _ = img.shape
 
 
-port_id = '/dev/cu.usbmodem1411101'
+#<<<<<<< Dawid_working
+port_id = '/dev/cu.usbmodem144401'
+#=======
+#port_id = '/dev/cu.usbmodem1411101'
+#>>>>>>> main
 # initialise serial interface
 arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
 
@@ -49,7 +53,9 @@ def ball_track(key1, queue):
         print('Ball tracking is initiated')
 
     myColorFinder = ColorFinder(False)  # if you want to find the color and calibrate the program we use this *(Debugging)
-    hsvVals = {'hmin': 0, 'smin': 65, 'vmin': 219, 'hmax': 179, 'smax': 255, 'vmax': 255}
+
+    hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}
+
 
     center_point = [626, 337, 2210]
 
@@ -65,7 +71,9 @@ def ball_track(key1, queue):
                    int(countours[0]['area'] - center_point[2])
 
             queue.put(data)
-            #print("The got coordinates for the ball are :", data)
+
+            print("The got coordinates for the ball are :", data)
+
         else:
             data = 'nil'
             queue.put(data)
