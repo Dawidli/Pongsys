@@ -7,7 +7,7 @@ This code can be used for computer vision based ball tracking.
 """
 
 
-camera_port = 0  # this is the camera port number (This can vary from, 0 - 10 from pc to pc)
+camera_port = 1  # this is the camera port number (This can vary from, 0 - 10 from pc to pc)
 cap = cv2.VideoCapture(camera_port) # Set the camera capture device
 
 # set width and height of the camera capture area
@@ -18,7 +18,7 @@ get, img = cap.read()
 h,w,_ = img.shape
 
 myColorFinder = ColorFinder(False) # if you want to find the color and calibrate the program we use this *(Debugging)
-hsvVals = {'hmin': 0, 'smin': 65, 'vmin': 219, 'hmax': 179, 'smax': 255, 'vmax': 255}  # this is hsv values for orange color
+hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}  # this is hsv values for orange color
 
 
 center_point = [626,337,2210] # this center point is found by placing the ball at the center of the plate and calibrating it.
