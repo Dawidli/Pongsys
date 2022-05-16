@@ -7,7 +7,7 @@ This code can be used for computer vision based ball tracking.
 """
 
 
-camera_port = 1  # this is the camera port number (This can vary from, 0 - 10 from pc to pc)
+camera_port = 0  # this is the camera port number (This can vary from, 0 - 10 from pc to pc)
 cap = cv2.VideoCapture(camera_port) # Set the camera capture device
 
 # set width and height of the camera capture area

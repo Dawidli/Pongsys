@@ -15,19 +15,19 @@ port_id = 'com3'
 arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
 
 #define servo angles and set a value
-servo1_angle = 0
+servo1_angle = -6.3
 servo2_angle = 0
 servo3_angle = 0
 
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-servo1_angle_limit_positive = 90
-servo1_angle_limit_negative = -90
+servo1_angle_limit_positive = -66
+servo1_angle_limit_negative = 30.3
 
-servo2_angle_limit_positive = 90
-servo2_angle_limit_negative = -90
+servo2_angle_limit_positive = -68.5
+servo2_angle_limit_negative = 36.7
 
-servo3_angle_limit_positive = 90
-servo3_angle_limit_negative = -90
+servo3_angle_limit_positive = -59.7
+servo3_angle_limit_negative = 40.1
 
 
 # -------------------------------------------angle assignment functions-------------------------------------------

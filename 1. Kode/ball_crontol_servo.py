@@ -32,7 +32,7 @@ servo3_angle_limit_negative = -90
 
 
 def ball_track(key1, queue):
-    camera_port = 1
+    camera_port = 0
     cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
     cap.set(3, 1280)
     cap.set(4, 720)
@@ -50,8 +50,13 @@ def ball_track(key1, queue):
 
     while True:
         get, img = cap.read()
-        imgColor, mask = myColorFinder.update(img, hsvVals)
-        imgContour, countours = cvzone.findContours(img, mask)
+        center_coordinates = (610, 395)
+        radius = 800
+        color = (200, 0, 0)
+        thickness = 940
+        image = cv2.circle(img, center_coordinates, radius, color, thickness)
+        imgColor, mask = myColorFinder.update(image, hsvVals)
+        imgContour, countours = cvzone.findContours(image, mask)
 
         if countours:
 
@@ -72,7 +77,7 @@ def ball_track(key1, queue):
 
 
 def servo_control(key2, queue):
-    port_id = 'COM5'
+    port_id = 'COM3'
     # initialise serial interface
     arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
     if key2:
