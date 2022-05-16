@@ -7,7 +7,6 @@ import cv2
 import serial
 import math
 from tkinter import *
-
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 """
 For running both programs simultaneously we can use multithreading or multiprocessing
@@ -50,8 +49,14 @@ def ball_track(key1, queue):
 
     while True:
         get, img = cap.read()
-        imgColor, mask = myColorFinder.update(img, hsvVals)
-        imgContour, countours = cvzone.findContours(img, mask)
+        center_coordinates = (610, 395)
+        radius = 800
+        color = (200, 0, 0)
+        thickness = 940
+        image = cv2.circle(img, center_coordinates, radius, color, thickness)
+
+        imgColor, mask = myColorFinder.update(image, hsvVals)
+        imgContour, countours = cvzone.findContours(image, mask)
 
         if countours:
 
@@ -66,6 +71,7 @@ def ball_track(key1, queue):
             queue.put(data)
 
         imgStack = cvzone.stackImages([imgContour], 1, 1)
+
         # imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
         cv2.imshow("Image", imgStack)
         cv2.waitKey(1)
