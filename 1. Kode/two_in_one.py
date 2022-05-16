@@ -23,7 +23,7 @@ h, w, _ = img.shape
 
 
 #<<<<<<< Dawid_working
-port_id = '/dev/cu.usbmodem144401'
+port_id = '/dev/cu.usbmodem143101'
 #=======
 #port_id = '/dev/cu.usbmodem1411101'
 #>>>>>>> main
@@ -35,6 +35,27 @@ servo1_angle = 0
 servo2_angle = 0
 servo3_angle = 0
 all_angle = 0
+
+# Dummy values, to avoid error
+L = 10
+vp = 45
+vr = 45
+
+# Matrice definition, where small p is for Pitch and small r is roll
+P = [L/2, -L/2, 0, L/(2*math.sqrt(3)), L/(2*math.sqrt(3)), -L/(math.sqrt(3)), 0, 0, 0]
+Tp = [1, 0, 0, 0, math.cos(vp), -math.sin(vp), 0, math.sin(vp), math.cos(vp)]
+Pp = [P[0]*Tp[0], P[1]*Tp[1], P[2]*Tp[2], P[3]*Tp[3], P[4]*Tp[4], P[5]*Tp[5], P[6]*Tp[6], P[7]*Tp[7], P[8]*Tp[8]]
+Tr = [math.cos(vr), 0, -math.sin(vr), 0, 1, 0, math.sin(vr), 0, math.cos(vr)]
+Pr = [P[0]*Tr[0], P[1]*Tr[1], P[2]*Tr[2], P[3]*Tr[3], P[4]*Tr[4], P[5]*Tr[5], P[6]*Tr[6], P[7]*Tr[7], P[8]*Tr[8]]
+Ppr = [Pp[0]*Pr[0], Pp[1]*Pr[1], Pp[2]*Pr[2], Pp[3]*Pr[3], Pp[4]*Pr[4], Pp[5]*Pr[5], Pp[6]*Pr[6], Pp[7]*Pr[7], Pp[8]*Pr[8]]
+
+print(P)
+print(Pp)
+print(Pr)
+print(Ppr)
+
+
+
 
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
 servo1_angle_limit_positive = 90

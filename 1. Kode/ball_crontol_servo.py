@@ -76,6 +76,29 @@ def ball_track(key1, queue):
         cv2.imshow("Image", imgStack)
         cv2.waitKey(1)
 
+# Husk å lage variabler for verdier som 28, 105 osv.
+# 28 = max koordinat
+# 105 er max akselerasjon på ballen
+# 7 er kun en kostant som aldri forandrer seg, la ligge
+# 4 er konstantlengde til l_horn, som er avstanden fra servo skrua til ytremutteren
+# 17.5 er distansen mellom servoene 1 og 2 til 3
+# 20 er distansen mellom hver og enkel servo
+
+def Preg(xverdi, yverdi):
+    Preg_values = [0]*2
+
+    for i in range(2):
+        dist = yverdi if i == 0 else xverdi
+        cord_ratio = dist/28
+        d = 17.5 if i == 0 else 20
+        platform_angle = (cord_ratio*105) / (7)
+        motor_angle = math.asin((d*math.sin(platform_angle))/(2*4))
+        Preg_values[i] = motor_angle        #indeks 0 er pitch og indeks 1 er roll
+
+    servo_values = [Preg_values[0]-Preg_values[1], Preg_values[0]+Preg_values[1], -Preg_values[0]]
+    # have to fix a min/max regulation for servo_values ;)
+    return servo_values
+
 
 def servo_control(key2, queue):
     if key2:
