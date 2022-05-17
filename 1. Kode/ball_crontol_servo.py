@@ -13,6 +13,7 @@ from tkinter import *
 """
 For running both programs simultaneously we can use multithreading or multiprocessing
 """
+
 #define servo angles and set a value
 servo1_angle = -6.3
 servo2_angle = 0
@@ -106,7 +107,7 @@ def servo_control(key2, queue):
         global servo_values
 
         if xverdi == 'i' and yverdi == 'n':
-            return 
+            return
         else:
             Preg_values = [0] * 2
 
