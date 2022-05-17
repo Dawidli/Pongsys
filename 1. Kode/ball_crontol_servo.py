@@ -50,6 +50,7 @@ def ball_track(key1, queue):
 
     while True:
         get, img = cap.read()
+        #Filtring unnecessary camera feed
         center_coordinates = (610, 395)
         radius = 800
         color = (200, 0, 0)
@@ -83,7 +84,6 @@ def servo_control(key2, queue):
     arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
     if key2:
         print('Servo controls are initiated')
-
 
     def all_angle_assign(angle_passed1,angle_passed2,angle_passed3):
         global servo1_angle, servo2_angle, servo3_angle
@@ -120,8 +120,6 @@ def servo_control(key2, queue):
                 Preg_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
             servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
         # have to fix a min/max regulation for servo_values ;)
-
-
     def writeCoord():
         """
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
@@ -132,7 +130,6 @@ def servo_control(key2, queue):
         else:
             test = -corrd_info[1]
         Preg(test, corrd_info[0])
-        #print(servo_values)
         all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
 
     def write_arduino(data):
@@ -159,7 +156,6 @@ def servo_control(key2, queue):
 if __name__ == '__main__':
 
     queue = Queue() # The queue is done inorder for the communication between the two processes.
-
     key1 = 1 # just two dummy arguments passed for the processes
     key2 = 2
     p1 = mp.Process(target= ball_track, args=(key1, queue)) # initiate ball tracking process
