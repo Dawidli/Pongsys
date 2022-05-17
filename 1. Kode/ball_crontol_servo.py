@@ -5,6 +5,7 @@ from cvzone.ColorModule import ColorFinder
 import cv2
 import serial
 import math
+import numpy as np
 from tkinter import *
 
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
@@ -57,18 +58,10 @@ def ball_track(key1, queue):
         imgContour, countours = cvzone.findContours(image, mask)
 
         if countours:
-            #global x_axis
             data = round((countours[0]['center'][0] - center_point[0]) / 10), \
                    round((h - countours[0]['center'][1] - center_point[1]) / 10), \
                    round(int(countours[0]['area'] - center_point[2])/100)
-            #y_axis = data[1]
             queue.put(data)
-            #some = mp.sharedctypes.Value(data[0])
-            #print(queue)
-            #x_axis = mp.Value(5, 0.0)
-            #print(x_axis)
-
-           # print("The got coordinates for the ball are :", data)
 
         else:
             data = 'nil' # returns nil if we cant find the ball
@@ -93,9 +86,9 @@ def servo_control(key2, queue):
 
     def all_angle_assign(angle_passed1,angle_passed2,angle_passed3):
         global servo1_angle, servo2_angle, servo3_angle
-        servo1_angle = math.radians(float(angle_passed1))
-        servo2_angle = math.radians(float(angle_passed2))
-        servo3_angle = math.radians(float(angle_passed3))
+        servo1_angle = float(angle_passed1)
+        servo2_angle = float(angle_passed2)
+        servo3_angle = float(angle_passed3)
         write_servo()
 
     root = Tk()
@@ -110,18 +103,21 @@ def servo_control(key2, queue):
     # 20 er distansen mellom hver og enkel servo
 
     def Preg(xverdi, yverdi):
-        Preg_values = [0] * 2
-
-        for i in range(2):
-            dist = yverdi if i == 0 else xverdi
-            cord_ratio = dist / 28
-            d = 17.5 if i == 0 else 20
-            platform_angle = (cord_ratio * 105) / (7)
-            motor_angle = (math.sin((d * math.sin(platform_angle))) / (2 * 4))**-1
-            Preg_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
-
         global servo_values
-        servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
+
+        if xverdi == 'i' and yverdi == 'n':
+            return 
+        else:
+            Preg_values = [0] * 2
+
+            for i in range(2):
+                dist = yverdi if i == 0 else xverdi
+                cord_ratio = dist / 28
+                d = 17.5 if i == 0 else 20
+                platform_angle = math.radians((cord_ratio * 105) / (7))
+                motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
+                Preg_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
+            servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
         # have to fix a min/max regulation for servo_values ;)
 
 
@@ -130,22 +126,13 @@ def servo_control(key2, queue):
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
         """
         corrd_info = queue.get()
-        Preg(corrd_info[0], corrd_info[1])
-        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
-        """corrd_info = queue.get()
-        Preg(corrd_info[0], corrd_info[1])
-        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
-       if corrd_info == 'nil': # Checks if the output is nil
-           all_angle_assign(0,0,0)
+        if corrd_info == 'nil' :
+            test = corrd_info[1]
         else:
-            all_angle_assign(servo_values[0], servo_values[1], servo_values[2])"""
-   #         print('The position of the ball : ', corrd_info[2])
-
-#            if (-90 < corrd_info[0] < 90) and (-90 < corrd_info[1] < 90) and (-90 < corrd_info[2] < 90):
-
- #               all_angle_assign(corrd_info[0],corrd_info[1],corrd_info[2])
-  #          else:
-   #             all_angle_assign(0,0,0)
+            test = -corrd_info[1]
+        Preg(test, corrd_info[0])
+        #print(servo_values)
+        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
 
     def write_arduino(data):
         #print('The angles send to the arduino : ', data)
