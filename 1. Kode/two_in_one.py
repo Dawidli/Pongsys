@@ -68,6 +68,7 @@ def ball_track(key1, queue):
             #print("The got coordinates for the ball are :", data)
         else:
             data = 'nil'
+            print(data[1])
             queue.put(data)
 
         imgStack = cvzone.stackImages([imgContour], 1, 1)

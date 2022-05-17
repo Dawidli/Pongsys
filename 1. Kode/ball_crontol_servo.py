@@ -12,21 +12,20 @@ from tkinter import *
 """
 For running both programs simultaneously we can use multithreading or multiprocessing
 """
-
 #define servo angles and set a value
 servo1_angle = -6.3
 servo2_angle = 0
 servo3_angle = 0
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-servo1_angle_limit_positive = -66
-servo1_angle_limit_negative = 30.3
+servo1_angle_limit_positive = -61
+servo1_angle_limit_negative = 25.3
 
-servo2_angle_limit_positive = -68.5
-servo2_angle_limit_negative = 36.7
+servo2_angle_limit_positive = -63.5
+servo2_angle_limit_negative = 31.7
 
-servo3_angle_limit_positive = -59.7
-servo3_angle_limit_negative = 40.1
+servo3_angle_limit_positive = -54.7
+servo3_angle_limit_negative = 35.1
 
 
 def ball_track(key1, queue):
@@ -64,17 +63,17 @@ def ball_track(key1, queue):
                    round(int(countours[0]['area'] - center_point[2])/100)
             #y_axis = data[1]
             queue.put(data)
-            x_axis = round((countours[0]['center'][0] - center_point[0]) / 10)
-            #global x_axis, y_axis
-            x_axis = data[0]
+            #some = mp.sharedctypes.Value(data[0])
+            #print(queue)
+            #x_axis = mp.Value(5, 0.0)
+            #print(x_axis)
+
            # print("The got coordinates for the ball are :", data)
 
         else:
             data = 'nil' # returns nil if we cant find the ball
             queue.put(data)
 
-        global xx_axis
-        xx_axis = x_axis
 
         imgStack = cvzone.stackImages([imgContour], 1, 1)
         # imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
@@ -124,20 +123,22 @@ def servo_control(key2, queue):
         global servo_values
         servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
         # have to fix a min/max regulation for servo_values ;)
-        #return servo_values
+
 
     def writeCoord():
         """
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
         """
-        #print(x_axis)
-
+        corrd_info = queue.get()
+        Preg(corrd_info[0], corrd_info[1])
         all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
- #       corrd_info = queue.get()
-
-#       if corrd_info == 'nil': # Checks if the output is nil
- #           print('cant fins the ball :(')
-  #      else:
+        """corrd_info = queue.get()
+        Preg(corrd_info[0], corrd_info[1])
+        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
+       if corrd_info == 'nil': # Checks if the output is nil
+           all_angle_assign(0,0,0)
+        else:
+            all_angle_assign(servo_values[0], servo_values[1], servo_values[2])"""
    #         print('The position of the ball : ', corrd_info[2])
 
 #            if (-90 < corrd_info[0] < 90) and (-90 < corrd_info[1] < 90) and (-90 < corrd_info[2] < 90):
@@ -163,7 +164,6 @@ def servo_control(key2, queue):
         write_arduino(str(angles))
 
     while key2:
-        Preg(x_axis,0)
         writeCoord()
 
     root.mainloop()  # running loop
@@ -171,6 +171,7 @@ def servo_control(key2, queue):
 if __name__ == '__main__':
 
     queue = Queue() # The queue is done inorder for the communication between the two processes.
+
     key1 = 1 # just two dummy arguments passed for the processes
     key2 = 2
     p1 = mp.Process(target= ball_track, args=(key1, queue)) # initiate ball tracking process
@@ -179,3 +180,5 @@ if __name__ == '__main__':
     p2.start()
     p1.join()
     p2.join()
+
+
