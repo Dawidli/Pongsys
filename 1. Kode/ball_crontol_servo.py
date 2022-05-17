@@ -13,27 +13,25 @@ from tkinter import *
 For running both programs simultaneously we can use multithreading or multiprocessing
 """
 
-
-# define servo angles and set a value
-servo1_angle = 0
+#define servo angles and set a value
+servo1_angle = -6.3
 servo2_angle = 0
 servo3_angle = 0
 all_angle = 0
-
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-servo1_angle_limit_positive = 90
-servo1_angle_limit_negative = -90
+servo1_angle_limit_positive = -66
+servo1_angle_limit_negative = 30.3
 
-servo2_angle_limit_positive = 90
-servo2_angle_limit_negative = -90
+servo2_angle_limit_positive = -68.5
+servo2_angle_limit_negative = 36.7
 
-servo3_angle_limit_positive = 90
-servo3_angle_limit_negative = -90
+servo3_angle_limit_positive = -59.7
+servo3_angle_limit_negative = 40.1
 
 
 def ball_track(key1, queue):
     camera_port = 0
-    cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(camera_port,cv2.CAP_DSHOW)
     cap.set(3, 1280)
     cap.set(4, 720)
 
@@ -44,9 +42,10 @@ def ball_track(key1, queue):
         print('Ball tracking is initiated')
 
     myColorFinder = ColorFinder(False)  # if you want to find the color and calibrate the program we use this *(Debugging)
-    hsvVals = {'hmin': 0, 'smin': 65, 'vmin': 219, 'hmax': 179, 'smax': 255, 'vmax': 255}
+    hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}
 
-    center_point = [626, 337, 2210]
+    center_point = [626, 337, 2210] # center point of the plate, calibrated
+
 
     while True:
         get, img = cap.read()
@@ -59,21 +58,30 @@ def ball_track(key1, queue):
         imgContour, countours = cvzone.findContours(image, mask)
 
         if countours:
-
+            #global x_axis
             data = round((countours[0]['center'][0] - center_point[0]) / 10), \
                    round((h - countours[0]['center'][1] - center_point[1]) / 10), \
-                   int(countours[0]['area'] - center_point[2])
+                   round(int(countours[0]['area'] - center_point[2])/100)
+            #y_axis = data[1]
+            queue.put(data)
+            x_axis = round((countours[0]['center'][0] - center_point[0]) / 10)
+            #global x_axis, y_axis
+            x_axis = data[0]
+           # print("The got coordinates for the ball are :", data)
 
-            queue.put(data)
-            #print("The got coordinates for the ball are :", data)
         else:
-            data = 'nil'
+            data = 'nil' # returns nil if we cant find the ball
             queue.put(data)
+
+        global xx_axis
+        xx_axis = x_axis
 
         imgStack = cvzone.stackImages([imgContour], 1, 1)
         # imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
         cv2.imshow("Image", imgStack)
+
         cv2.waitKey(1)
+
 
 
 def servo_control(key2, queue):
@@ -84,70 +92,63 @@ def servo_control(key2, queue):
         print('Servo controls are initiated')
 
 
-    def servo1_angle_assign(servo1_angle_passed):
-        global servo1_angle
-        servo1_angle = math.radians(float(servo1_angle_passed))
-        write_servo()
-
-    def servo2_angle_assign(servo2_angle_passed):
-        global servo2_angle
-        servo2_angle = math.radians(float(servo2_angle_passed))
-        write_servo()
-
-    def servo3_angle_assign(servo3_angle_passed):
-        global servo3_angle
-        servo3_angle = math.radians(float(servo3_angle_passed))
-        write_servo()
-
-    def all_angle_assign(all_angle_passed):
+    def all_angle_assign(angle_passed1,angle_passed2,angle_passed3):
         global servo1_angle, servo2_angle, servo3_angle
-        servo1_angle = math.radians(float(all_angle_passed))
-        servo2_angle = math.radians(float(all_angle_passed))
-        servo3_angle = math.radians(float(all_angle_passed))
+        servo1_angle = math.radians(float(angle_passed1))
+        servo2_angle = math.radians(float(angle_passed2))
+        servo3_angle = math.radians(float(angle_passed3))
         write_servo()
 
     root = Tk()
     root.resizable(0, 0)
 
-    w2 = Label(root, justify=LEFT, text="Simple Servo Controller")
-    w2.config(font=("Elephant", 30))
-    w2.grid(row=3, column=0, columnspan=2, padx=100)
+    # Husk å lage variabler for verdier som 28, 105 osv.
+    # 28 = max koordinat
+    # 105 er max akselerasjon på ballen
+    # 7 er kun en kostant som aldri forandrer seg, la ligge
+    # 4 er konstantlengde til l_horn, som er avstanden fra servo skrua til ytremutteren
+    # 17.5 er distansen mellom servoene 1 og 2 til 3
+    # 20 er distansen mellom hver og enkel servo
 
-    S1Lb = Label(root, text="Servo 1 Angle")
-    S1Lb.config(font=("Elephant", 15))
-    S1Lb.grid(row=5, column=0, pady=10)
+    def Preg(xverdi, yverdi):
+        Preg_values = [0] * 2
 
-    S2Lb = Label(root, text="Servo 2 Angle")
-    S2Lb.config(font=("Elephant", 15))
-    S2Lb.grid(row=10, column=0, pady=10)
+        for i in range(2):
+            dist = yverdi if i == 0 else xverdi
+            cord_ratio = dist / 28
+            d = 17.5 if i == 0 else 20
+            platform_angle = (cord_ratio * 105) / (7)
+            motor_angle = (math.sin((d * math.sin(platform_angle))) / (2 * 4))**-1
+            Preg_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
 
-    S3Lb = Label(root, text="Servo 3 Angle")
-    S3Lb.config(font=("Elephant", 15))
-    S3Lb.grid(row=15, column=0, pady=10)
+        global servo_values
+        servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
+        # have to fix a min/max regulation for servo_values ;)
+        #return servo_values
 
-    S4Lb = Label(root, text="All Servos at once")
-    S4Lb.config(font=("Elephant", 15))
-    S4Lb.grid(row=20, column=0, pady=10)
+    def writeCoord():
+        """
+        Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
+        """
+        #print(x_axis)
 
-    servo1 = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=servo1_angle_assign)
-    servo1.grid(row=5, column=1)
+        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
+ #       corrd_info = queue.get()
 
-    servo2 = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=servo2_angle_assign)
-    servo2.grid(row=10, column=1)
+#       if corrd_info == 'nil': # Checks if the output is nil
+ #           print('cant fins the ball :(')
+  #      else:
+   #         print('The position of the ball : ', corrd_info[2])
 
-    servo3 = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=servo3_angle_assign)
-    servo3.grid(row=15, column=1)
+#            if (-90 < corrd_info[0] < 90) and (-90 < corrd_info[1] < 90) and (-90 < corrd_info[2] < 90):
 
-    all_at_once = Scale(root, from_=servo1_angle_limit_negative, to=servo1_angle_limit_positive, orient=HORIZONTAL,
-                   resolution=1.0, length=400, command=all_angle_assign)
-    all_at_once.grid(row=20, column=1)
+ #               all_angle_assign(corrd_info[0],corrd_info[1],corrd_info[2])
+  #          else:
+   #             all_angle_assign(0,0,0)
 
     def write_arduino(data):
-        print('The angles send to the arduino : ', data)
-        print('The position of the ball : ', queue.get())
+        #print('The angles send to the arduino : ', data)
+
         arduino.write(bytes(data, 'utf-8'))
 
     def write_servo():
@@ -161,6 +162,10 @@ def servo_control(key2, queue):
 
         write_arduino(str(angles))
 
+    while key2:
+        Preg(x_axis,0)
+        writeCoord()
+
     root.mainloop()  # running loop
 
 if __name__ == '__main__':
@@ -172,5 +177,5 @@ if __name__ == '__main__':
     p2 = mp.Process(target=servo_control,args=(key2, queue)) # initiate servo controls
     p1.start()
     p2.start()
-    #p1.join()
-    #p2.join()
+    p1.join()
+    p2.join()
