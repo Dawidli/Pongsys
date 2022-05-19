@@ -17,6 +17,7 @@ if __name__ == '__main__':
     q2 = mp.Queue()
     p = mp.Process(target=foo, args=(q,))
     p2 = mp.Process(target=funksjon, args=(q2,))
+
     p.start()
     p2.start()
     queue_value = q.get()

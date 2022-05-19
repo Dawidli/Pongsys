@@ -10,8 +10,6 @@ ms_old = ms
 
 koordinater = np.linspace(2,3,10000)
 
-derivator +=
-
 def Preg(xverdi, yverdi):
     global servo_values
 
@@ -55,7 +53,7 @@ def K_values(setling_time, overshoot):
     return K
 
 
+K = K_values(setling_time, overshoot)
+print(round(K[0]), round(K[1]))
 
-print(str(K_values(setling_time, overshoot)))
-
-PDreg(x, y, xo, yo, K_values(setling_time, overshoot), cycle_time)
+#PDreg(x, y, xo, yo, K_values(setling_time, overshoot), cycle_time)
