@@ -7,6 +7,9 @@ import cv2
 import serial
 import math
 from tkinter import *
+
+import numpy as np
+
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 """
 For running both programs simultaneously we can use multithreading or multiprocessing
@@ -29,13 +32,15 @@ servo2_angle_limit_negative = -90
 servo3_angle_limit_positive = 90
 servo3_angle_limit_negative = -90
 
+lower = np.array([0, 0, 0])
+upper = np.array([200, 200, 200])
+
 
 def ball_track(key1, queue):
     camera_port = 0
     cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
     cap.set(3, 1280)
     cap.set(4, 720)
-
     get, img = cap.read()
     h, w, _ = img.shape
 
@@ -49,14 +54,23 @@ def ball_track(key1, queue):
 
     while True:
         get, img = cap.read()
+
+        thresh = cv2.inRange(img, lower, upper)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (20, 20))
+        morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+        mask = 255 - morph
+        result = cv2.bitwise_and(img, img, mask=mask)
+
+        """global radius
         center_coordinates = (610, 395)
-        radius = 800
+        #radius = 800
         color = (200, 0, 0)
         thickness = 940
-        image = cv2.circle(img, center_coordinates, radius, color, thickness)
+        image = cv2.circle(img, center_coordinates, radius, color, thickness)"""
 
-        imgColor, mask = myColorFinder.update(image, hsvVals)
-        imgContour, countours = cvzone.findContours(image, mask)
+
+        imgColor, mask = myColorFinder.update(result, hsvVals)
+        imgContour, countours = cvzone.findContours(result, mask)
 
         if countours:
 
@@ -68,7 +82,7 @@ def ball_track(key1, queue):
             #print("The got coordinates for the ball are :", data)
         else:
             data = 'nil'
-            print(data[1])
+            #print(data[1])
             queue.put(data)
 
         imgStack = cvzone.stackImages([imgContour], 1, 1)

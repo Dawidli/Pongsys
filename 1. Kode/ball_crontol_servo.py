@@ -8,6 +8,8 @@ import math
 import numpy as np
 from tkinter import *
 
+import time
+
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 """
@@ -160,9 +162,12 @@ if __name__ == '__main__':
     key2 = 2
     p1 = mp.Process(target= ball_track, args=(key1, queue)) # initiate ball tracking process
     p2 = mp.Process(target=servo_control,args=(key2, queue)) # initiate servo controls
+    cycle_time = time.perf_counter()
+    print(cycle_time)
     p1.start()
     p2.start()
     p1.join()
     p2.join()
+    p3.join()
 
 
