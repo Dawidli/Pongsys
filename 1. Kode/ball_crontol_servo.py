@@ -8,10 +8,8 @@ import math
 import numpy as np
 from tkinter import *
 import imutils
-
 import time
 
-# -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 """
 For running both programs simultaneously we can use multithreading or multiprocessing
@@ -23,6 +21,14 @@ servo2_angle = 0
 servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
+
+time_array = [time.time()]*2
+
+platform_angle = 0 # intial
+delta_t = 1 / 100
+current_platform_angle = [0, 0] # initial verdi
+velocity = [0, 0] # initial verdi
+K = [46, 8]
 
 
 def ball_track(key1, queue):
@@ -99,6 +105,12 @@ def servo_control(key2, queue):
     # 17.5 er distansen mellom servoene 1 og 2 til 3
     # 20 er distansen mellom hver og enkel servo
 
+    def timerfunksjon():
+        time_array[1] = time_array[0]
+        time_array[0] = time.time()
+        cycle_time = (time_array[0] - time_array[1]) / 1000
+        return cycle_time
+
     def Preg(xverdi, yverdi):
         global servo_values
 
@@ -117,6 +129,32 @@ def servo_control(key2, queue):
             servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
             #print("Servo 1: ",round(servo_values[0],3),"Servo 2: ",round(servo_values[1],3),"Servo 3: ",round(servo_values[2],3))
         # have to fix a min/max regulation for servo_values ;)
+
+    def PDreg(x_error, y_error, K):
+        global velocity, servo_values
+
+        if x_error == 'n' and y_error == 'i':
+            return
+        else:
+            Regulator_values = [0] * 2
+
+            for i in range(2):
+                distance_error = y_error if i == 0 else x_error
+                d = 17.5 if i == 0 else 20
+
+                # integrator: calculating ball-velocity
+                velocity[i] += (current_platform_angle[i] * delta_t) / 7
+
+                # regulator
+                platform_angle = (-K[0] * distance_error - K[1] * velocity[i])
+                current_platform_angle[i] = platform_angle
+
+                # converts platform angle to servo angles and sends away
+                motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
+                Regulator_values[i] = -motor_angle  # indeks 0 er pitch og indeks 1 er roll
+            servo_values = [Regulator_values[0] - Regulator_values[1], Regulator_values[0] + Regulator_values[1],
+                            -Regulator_values[0]]
+
     def writeCoord():
         """
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
@@ -124,9 +162,12 @@ def servo_control(key2, queue):
         corrd_info = queue.get()
         #print(corrd_info)
 
-        Preg(corrd_info[0], corrd_info[1])
+        PDreg(corrd_info[0], corrd_info[1], K)
 
         all_angle_assign(servo_values[1], servo_values[2], servo_values[0])
+
+        wait = 0.01 - timerfunksjon()
+        time.sleep(wait)
 
 
 
@@ -139,8 +180,8 @@ def servo_control(key2, queue):
         ang1 = math.degrees(servo1_angle)
         ang2 = math.degrees(servo2_angle)
         ang3 = math.degrees(servo3_angle)
-        minValue = 35
-        maxValue = -35
+        minValue = 30
+        maxValue = -30
         if ang1 > minValue:
             ang1 = minValue
         elif ang1 < maxValue:
@@ -174,8 +215,6 @@ if __name__ == '__main__':
     key2 = 2
     p1 = mp.Process(target= ball_track, args=(key1, queue)) # initiate ball tracking process
     p2 = mp.Process(target=servo_control,args=(key2, queue)) # initiate servo controls
-    cycle_time = time.perf_counter()
-    print(cycle_time)
     p1.start()
     p2.start()
     p1.join()
