@@ -146,7 +146,8 @@ def servo_control(key2, queue):
                 velocity[i] += (current_platform_angle[i] * delta_t) / 7
 
                 # regulator
-                platform_angle = (-K[0] * distance_error - K[1] * velocity[i])
+                platform_angle = math.radians(-K[0] * distance_error - K[1] * velocity[i])
+                print("Platform angle: ", platform_angle, "Fart er: ", velocity)
                 current_platform_angle[i] = platform_angle
 
                 # converts platform angle to servo angles and sends away
