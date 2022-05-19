@@ -33,8 +33,17 @@ servo2_angle_limit_negative = -90
 
 servo3_angle_limit_positive = 90
 servo3_angle_limit_negative = -90
-
+"""
 sirkel = cv2.imread('C:\\Users\\zaime\\Downloads\\sirkel.png', 0)
+h,w = sirkel.shape
+scale_w = 320/311
+scale_h = 125/151
+width = int(h * scale_h)
+height = int(w * scale_w)
+dim = (width, height)
+resized = cv2.resize(sirkel, dim)"""
+
+base_width = 300
 
 
 def ball_track(key1, queue):
@@ -44,6 +53,8 @@ def ball_track(key1, queue):
     cap.set(4, 720)
     get, img = cap.read()
     h, w, _ = img.shape
+    print(h,w)
+
 
     if key1:
         print('Ball tracking is initiated')
@@ -69,8 +80,12 @@ def ball_track(key1, queue):
         thickness = 940
         image = cv2.circle(img, center_coordinates, radius, color, thickness)"""
         rotated = imutils.rotate(img, 7)
+        rotated = rotated.resize((base_width, hsize), Image.ANTIALIAS)
+        wpercent = (base_width / float(rotated.size[0]))
+        hsize = int((float(rotated.size[1]) * float(wpercent)))
+        rotated = rotated.resize((base_width, hsize))
         #img = img.rotate(180)
-        #dst = cv2.addWeighted(img, 0.5, sirkel, 0.7, 0)
+        #dst = cv2.addWeighted(img, 0.5, resized, 0.5, 0)
 
         imgColor, mask = myColorFinder.update(rotated, hsvVals)
         imgContour, countours = cvzone.findContours(rotated, mask)
@@ -88,9 +103,9 @@ def ball_track(key1, queue):
             #print(data[1])
             queue.put(data)
 
-        #imgStack = cvzone.stackImages([imgContour], 1, 1)
+        imgStack = cvzone.stackImages([imgContour], 1, 1)
 
-         imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
+        # imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
         cv2.imshow("Image", imgStack)
         cv2.waitKey(1)
 

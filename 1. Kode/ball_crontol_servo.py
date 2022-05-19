@@ -26,8 +26,9 @@ time_array = [time.time()]*2
 
 platform_angle = 0 # intial
 delta_t = 1 / 100
-current_platform_angle = [0, 0] # initial verdi
 velocity = [0, 0] # initial verdi
+pos_x = [0, 0]
+pos_y = [0, 0]
 K = [46, 8]
 
 
@@ -62,9 +63,9 @@ def ball_track(key1, queue):
         imgContour, countours = cvzone.findContours(image, mask)
 
         if countours:
-            data = round((countours[0]['center'][0] - center_point[0]) / 10), \
-                   round((h - countours[0]['center'][1] - center_point[1]) / 10), \
-                   round(int(countours[0]['area'] - center_point[2])/100)
+            data = (countours[0]['center'][0] - center_point[0]) / 10, \
+                   (h - countours[0]['center'][1] - center_point[1]) / 10, \
+                   int(countours[0]['area'] - center_point[2])/100
             queue.put(data)
 
         else:
@@ -131,7 +132,7 @@ def servo_control(key2, queue):
         # have to fix a min/max regulation for servo_values ;)
 
     def PDreg(x_error, y_error, K):
-        global velocity, servo_values
+        global velocity, servo_values, pos_y, pos_x
 
         if x_error == 'n' and y_error == 'i':
             return
@@ -140,21 +141,30 @@ def servo_control(key2, queue):
 
             for i in range(2):
                 distance_error = y_error if i == 0 else x_error
-                d = 17.5 if i == 0 else 20
+                d = 28.0 if i == 0 else 32.0
 
-                # integrator: calculating ball-velocity
-                velocity[i] += (current_platform_angle[i] * delta_t) / 7
+                # Derivator
+                velocity[i] = ((pos_y[0]-pos_y[1]) / delta_t) if i == 0 else ((pos_x[0]-pos_x[1]) / delta_t)
+
+                print('velocity x', velocity[0], 'velocity y', velocity[1])
+                #print('pos x', pos_x[0], 'pos y', pos_y[0])
 
                 # regulator
                 platform_angle = math.radians(-K[0] * distance_error - K[1] * velocity[i])
-                print("Platform angle: ", platform_angle, "Fart er: ", velocity)
-                current_platform_angle[i] = platform_angle
+
+                if distance_error == y_error:
+                    pos_y[1] = pos_y[0]
+                    pos_y[0] = y_error
+                else:
+                    pos_x[1] = pos_x[0]
+                    pos_x[0] = x_error
 
                 # converts platform angle to servo angles and sends away
                 motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
                 Regulator_values[i] = -motor_angle  # indeks 0 er pitch og indeks 1 er roll
             servo_values = [Regulator_values[0] - Regulator_values[1], Regulator_values[0] + Regulator_values[1],
                             -Regulator_values[0]]
+
 
     def writeCoord():
         """
@@ -164,10 +174,12 @@ def servo_control(key2, queue):
         #print(corrd_info)
 
         PDreg(corrd_info[0], corrd_info[1], K)
+        #Preg(corrd_info[0], corrd_info[1])
 
+        #print('servo 1:', servo_values[1],'servo 2:', servo_values[2],'servo 3', servo_values[0])
         all_angle_assign(servo_values[1], servo_values[2], servo_values[0])
 
-        wait = 0.01 - timerfunksjon()
+        wait = delta_t - timerfunksjon()
         time.sleep(wait)
 
 
