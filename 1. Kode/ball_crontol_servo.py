@@ -23,14 +23,6 @@ servo2_angle = 0
 servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-servo1_angle_limit_positive = -63.5
-servo1_angle_limit_negative = -30 #21.7
-
-servo2_angle_limit_positive = -54.7
-servo2_angle_limit_negative = -30 #25.1
-
-servo3_angle_limit_positive = -61
-servo3_angle_limit_negative = -30 #15.3
 
 
 def ball_track(key1, queue):
