@@ -2,19 +2,20 @@ import cv2
 import numpy as np
 
 # create an overlay image. You can use any image
-foreground = np.ones((100, 100, 3), dtype='uint8') * 255
+#foreground = np.ones((100, 100, 3), dtype='uint8') * 255
+foreground = cv2.imread(r'C:\Users\zaime\Downloads\sirkel.png', 0)
 # Open the camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 # Set initial value of weights
-alpha = 0.4
+#alpha = 0.4
 while True:
     # read the background
     ret, background = cap.read()
     background = cv2.flip(background, 1)
     # Select the region in the background where we want to add the image and add the images using cv2.addWeighted()
-    added_image = cv2.addWeighted(background[150:250, 150:250, :], alpha, foreground[0:100, 0:100, :], 1 - alpha, 0)
+   # added_image = cv2.addWeighted(background[150:250, 150:250, :], alpha, foreground[0:100, 0:100, :], 1 - alpha, 0)
     # Change the region with the result
-    background[150:250, 150:250] = added_image
+    #background[150:250, 150:250] = added_image
     # For displaying current value of alpha(weights)
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(background, 'alpha:{}'.format(alpha), (10, 30), font, 1, (255, 255, 255), 2, cv2.LINE_AA)

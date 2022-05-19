@@ -21,9 +21,9 @@ void setup() {
     servo1.attach(9);  //attach the servo objects to arduino pins
     servo2.attach(10);
     servo3.attach(11);
-    servo1.write(90);   //set servos to centerposition
-    servo2.write(90);
-    servo3.write(90);
+    servo1.write(80);   //set servos to centerposition
+    servo2.write(80);
+    servo3.write(80);
 }
 
 void loop() {

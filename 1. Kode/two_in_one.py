@@ -9,6 +9,7 @@ import math
 from tkinter import *
 
 import numpy as np
+from PIL import Image
 
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 """
@@ -32,8 +33,7 @@ servo2_angle_limit_negative = -90
 servo3_angle_limit_positive = 90
 servo3_angle_limit_negative = -90
 
-lower = np.array([0, 0, 0])
-upper = np.array([200, 200, 200])
+#sirkel = cv2.imread('C:\\Users\\zaime\\Downloads\\sirkel.png', 0)
 
 
 def ball_track(key1, queue):
@@ -54,12 +54,12 @@ def ball_track(key1, queue):
 
     while True:
         get, img = cap.read()
-
+        """
         thresh = cv2.inRange(img, lower, upper)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (20, 20))
         morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
         mask = 255 - morph
-        result = cv2.bitwise_and(img, img, mask=mask)
+        result = cv2.bitwise_and(img, img, mask=mask)"""
 
         """global radius
         center_coordinates = (610, 395)
@@ -68,9 +68,11 @@ def ball_track(key1, queue):
         thickness = 940
         image = cv2.circle(img, center_coordinates, radius, color, thickness)"""
 
+        #img = img.rotate(180)
+        ##dst = cv2.addWeighted(img, 0.5, sirkel, 0.7, 0)
 
-        imgColor, mask = myColorFinder.update(result, hsvVals)
-        imgContour, countours = cvzone.findContours(result, mask)
+        imgColor, mask = myColorFinder.update(img, hsvVals)
+        imgContour, countours = cvzone.findContours(img, mask)
 
         if countours:
 
@@ -162,18 +164,35 @@ def servo_control(key2, queue):
     all_at_once.grid(row=20, column=1)
 
     def write_arduino(data):
-        print('The angles send to the arduino : ', data)
-        print('The position of the ball : ', queue.get())
+        #print('The angles send to the arduino : ', data)
+        #print('The position of the ball : ', queue.get())
         arduino.write(bytes(data, 'utf-8'))
 
     def write_servo():
-        ang1 = servo1_angle
-        ang2 = servo2_angle
-        ang3 = servo3_angle
+        ang1 = math.degrees(servo1_angle)
+        ang2 = math.degrees(servo2_angle)
+        ang3 = math.degrees(servo3_angle)
+        minValue = 35
+        maxValue = -35
+        print(ang1)
+        if ang1 > minValue:
+            ang1 = minValue
+        elif ang1 < maxValue:
+            ang1 = maxValue
 
-        angles: tuple = (round(math.degrees(ang1), 1),
-                         round(math.degrees(ang2), 1),
-                         round(math.degrees(ang3), 1))
+        if ang2 > minValue:
+            ang2 = minValue
+        elif ang2 < maxValue:
+            ang2 = maxValue
+
+        if ang3 > minValue:
+            ang3 = minValue
+        elif ang3 < maxValue:
+            ang3 = maxValue
+
+        angles: tuple = (round(ang1, 1),
+                        round(ang2, 1),
+                        round(ang3, 1))
 
         write_arduino(str(angles))
 

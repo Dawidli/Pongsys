@@ -17,19 +17,19 @@ For running both programs simultaneously we can use multithreading or multiproce
 """
 
 #define servo angles and set a value
-servo1_angle = -6.3
+servo1_angle = 0
 servo2_angle = 0
-servo3_angle = 0
+servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-servo1_angle_limit_positive = -61
-servo1_angle_limit_negative = 25.3
+servo1_angle_limit_positive = -63.5
+servo1_angle_limit_negative = -30 #21.7
 
-servo2_angle_limit_positive = -63.5
-servo2_angle_limit_negative = 31.7
+servo2_angle_limit_positive = -54.7
+servo2_angle_limit_negative = -30 #25.1
 
-servo3_angle_limit_positive = -54.7
-servo3_angle_limit_negative = 35.1
+servo3_angle_limit_positive = -61
+servo3_angle_limit_negative = -30 #15.3
 
 
 def ball_track(key1, queue):
@@ -108,7 +108,7 @@ def servo_control(key2, queue):
     def Preg(xverdi, yverdi):
         global servo_values
 
-        if xverdi == 'i' and yverdi == 'n':
+        if xverdi == 'n' and yverdi == 'i':
             return
         else:
             Preg_values = [0] * 2
@@ -119,20 +119,22 @@ def servo_control(key2, queue):
                 d = 17.5 if i == 0 else 20
                 platform_angle = math.radians((cord_ratio * 105) / (7))
                 motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
-                Preg_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
+                Preg_values[i] = -motor_angle # indeks 0 er pitch og indeks 1 er roll
             servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
+            #print("Servo 1: ",round(servo_values[0],3),"Servo 2: ",round(servo_values[1],3),"Servo 3: ",round(servo_values[2],3))
         # have to fix a min/max regulation for servo_values ;)
     def writeCoord():
         """
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
         """
         corrd_info = queue.get()
-        if corrd_info == 'nil' :
-            test = corrd_info[1]
-        else:
-            test = -corrd_info[1]
-        Preg(test, corrd_info[0])
-        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
+        #print(corrd_info)
+
+        Preg(corrd_info[0], corrd_info[1])
+
+        all_angle_assign(servo_values[1], servo_values[2], servo_values[0])
+
+
 
     def write_arduino(data):
         #print('The angles send to the arduino : ', data)
@@ -140,13 +142,30 @@ def servo_control(key2, queue):
         arduino.write(bytes(data, 'utf-8'))
 
     def write_servo():
-        ang1 = servo1_angle
-        ang2 = servo2_angle
-        ang3 = servo3_angle
+        ang1 = math.degrees(servo1_angle)
+        ang2 = math.degrees(servo2_angle)
+        ang3 = math.degrees(servo3_angle)
+        minValue = 35
+        maxValue = -35
+        print(ang1)
+        if ang1 > minValue:
+            ang1 = minValue
+        elif ang1 < maxValue:
+            ang1 = maxValue
 
-        angles: tuple = (round(math.degrees(ang1), 1),
-                         round(math.degrees(ang2), 1),
-                         round(math.degrees(ang3), 1))
+        if ang2 > minValue:
+            ang2 = minValue
+        elif ang2 < maxValue:
+            ang2 = maxValue
+
+        if ang3 > minValue:
+            ang3 = minValue
+        elif ang3 < maxValue:
+            ang3 = maxValue
+
+        angles: tuple = (round(ang1, 1),
+                         round(ang2, 1),
+                         round(ang3, 1))
 
         write_arduino(str(angles))
 
@@ -168,6 +187,5 @@ if __name__ == '__main__':
     p2.start()
     p1.join()
     p2.join()
-    p3.join()
 
 
