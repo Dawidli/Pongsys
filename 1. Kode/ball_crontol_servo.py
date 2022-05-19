@@ -7,6 +7,7 @@ import serial
 import math
 import numpy as np
 from tkinter import *
+import imutils
 
 import time
 
@@ -52,12 +53,13 @@ def ball_track(key1, queue):
 
     while True:
         get, img = cap.read()
+        rotated = imutils.rotate(img, 7)
         #Filtring unnecessary camera feed
         center_coordinates = (610, 395)
         radius = 800
         color = (200, 0, 0)
         thickness = 940
-        image = cv2.circle(img, center_coordinates, radius, color, thickness)
+        image = cv2.circle(rotated, center_coordinates, radius, color, thickness)
         imgColor, mask = myColorFinder.update(image, hsvVals)
         imgContour, countours = cvzone.findContours(image, mask)
 
@@ -147,7 +149,6 @@ def servo_control(key2, queue):
         ang3 = math.degrees(servo3_angle)
         minValue = 35
         maxValue = -35
-        print(ang1)
         if ang1 > minValue:
             ang1 = minValue
         elif ang1 < maxValue:

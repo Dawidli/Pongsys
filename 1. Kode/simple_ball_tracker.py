@@ -35,7 +35,7 @@ while True:
 
         print("The got coordinates for the ball are :",data)
 
-    imgStack = cvzone.stackImages([imgContour], 1, 1)
-    #imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
+    #imgStack = cvzone.stackImages([imgContour], 1, 1)
+    imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
     cv2.imshow("Image", imgStack)
     cv2.waitKey(1)

@@ -7,6 +7,7 @@ import cv2
 import serial
 import math
 from tkinter import *
+import imutils
 
 import numpy as np
 from PIL import Image
@@ -33,7 +34,7 @@ servo2_angle_limit_negative = -90
 servo3_angle_limit_positive = 90
 servo3_angle_limit_negative = -90
 
-#sirkel = cv2.imread('C:\\Users\\zaime\\Downloads\\sirkel.png', 0)
+sirkel = cv2.imread('C:\\Users\\zaime\\Downloads\\sirkel.png', 0)
 
 
 def ball_track(key1, queue):
@@ -67,12 +68,12 @@ def ball_track(key1, queue):
         color = (200, 0, 0)
         thickness = 940
         image = cv2.circle(img, center_coordinates, radius, color, thickness)"""
-
+        rotated = imutils.rotate(img, 7)
         #img = img.rotate(180)
-        ##dst = cv2.addWeighted(img, 0.5, sirkel, 0.7, 0)
+        #dst = cv2.addWeighted(img, 0.5, sirkel, 0.7, 0)
 
-        imgColor, mask = myColorFinder.update(img, hsvVals)
-        imgContour, countours = cvzone.findContours(img, mask)
+        imgColor, mask = myColorFinder.update(rotated, hsvVals)
+        imgContour, countours = cvzone.findContours(rotated, mask)
 
         if countours:
 
@@ -87,9 +88,9 @@ def ball_track(key1, queue):
             #print(data[1])
             queue.put(data)
 
-        imgStack = cvzone.stackImages([imgContour], 1, 1)
+        #imgStack = cvzone.stackImages([imgContour], 1, 1)
 
-        # imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
+         imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
         cv2.imshow("Image", imgStack)
         cv2.waitKey(1)
 
