@@ -33,8 +33,9 @@ servo2_angle_limit_negative = -90
 
 servo3_angle_limit_positive = 90
 servo3_angle_limit_negative = -90
+
+#sirkel = cv2.imread('C:\\Users\\zaime\\Downloads\\sirkel.png', 0)
 """
-sirkel = cv2.imread('C:\\Users\\zaime\\Downloads\\sirkel.png', 0)
 h,w = sirkel.shape
 scale_w = 320/311
 scale_h = 125/151
@@ -42,8 +43,17 @@ width = int(h * scale_h)
 height = int(w * scale_w)
 dim = (width, height)
 resized = cv2.resize(sirkel, dim)"""
+width = 1280
+heigth = 720
+circle_test = np.zeros((heigth,width,3), np.uint8)
+circle_test[:,:] = (255,255,255)
 
-base_width = 300
+center_coordinates = (610, 395)
+radius = 800
+color = (200, 0, 0)
+thickness = 940
+image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
+
 
 
 def ball_track(key1, queue):
@@ -80,15 +90,15 @@ def ball_track(key1, queue):
         thickness = 940
         image = cv2.circle(img, center_coordinates, radius, color, thickness)"""
         rotated = imutils.rotate(img, 7)
-        rotated = rotated.resize((base_width, hsize), Image.ANTIALIAS)
+        """rotated = rotated.resize((base_width, hsize), Image.ANTIALIAS)
         wpercent = (base_width / float(rotated.size[0]))
         hsize = int((float(rotated.size[1]) * float(wpercent)))
-        rotated = rotated.resize((base_width, hsize))
+        rotated = rotated.resize((base_width, hsize))"""
         #img = img.rotate(180)
-        #dst = cv2.addWeighted(img, 0.5, resized, 0.5, 0)
+        dst = cv2.addWeighted(rotated, 0.5, image, 0.5, 0)
 
-        imgColor, mask = myColorFinder.update(rotated, hsvVals)
-        imgContour, countours = cvzone.findContours(rotated, mask)
+        imgColor, mask = myColorFinder.update(dst, hsvVals)
+        imgContour, countours = cvzone.findContours(dst, mask)
 
         if countours:
 
