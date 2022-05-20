@@ -21,6 +21,18 @@ servo2_angle = 0
 servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
+"kamera greier"
+width = 1280
+heigth = 720
+circle_test = np.zeros((heigth,width,3), np.uint8)
+circle_test[:,:] = (255,255,255)
+
+center_coordinates = (610, 395)
+radius = 800
+color = (200, 0, 0)
+thickness = 940
+image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
+
 
 time_array = [time.time()]*2
 
@@ -61,14 +73,9 @@ def ball_track(key1, queue):
     while True:
         get, img = cap.read()
         rotated = imutils.rotate(img, 7)
-        #Filtring unnecessary camera feed
-        center_coordinates = (610, 395)
-        radius = 800
-        color = (200, 0, 0)
-        thickness = 940
-        image = cv2.circle(rotated, center_coordinates, radius, color, thickness)
-        imgColor, mask = myColorFinder.update(image, hsvVals)
-        imgContour, countours = cvzone.findContours(image, mask)
+        filter = cv2.addWeighted(rotated, 0.5, image, 0.5, 0)
+        imgColor, mask = myColorFinder.update(filter, hsvVals)
+        imgContour, countours = cvzone.findContours(filter, mask)
 
         if countours:
             data = (countours[0]['center'][0] - center_point[0]) / 10, \
