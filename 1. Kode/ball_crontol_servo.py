@@ -27,29 +27,42 @@ heigth = 720
 circle_test = np.zeros((heigth,width,3), np.uint8)
 circle_test[:,:] = (255,255,255)
 
-center_coordinates = (610, 395)
+center_coordinates = (630, 395)
 radius = 800
 color = (200, 0, 0)
 thickness = 940
 image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
 
+"FOR LAVPASS FILTER / BÅNDBEGRENSET DERIVASJONS FILTER KAN VI GÅ PÅ 12_DTFT OG PRAKSIS FILTER DESIGN"
 
 time_array = [time.time()]*2
 
 platform_angle = 0 # intial
 delta_t = 1 / 100
-velocity = [0, 0] # initial verdi
+velocity = [0] # initial verdi
 pos_x = [0, 0]
 pos_y = [0, 0]
-K = [0.86, 0.69]
+K = [0.3, 0.005]
+
+wc = 20 #hz
+Ts = 1/30
+
+b0 = wc/(wc*Ts + 1)
+b1 = - b0
+a0 = 1
+a1 = -(1/(wc*Ts + 1))
 
 global counter
-x_array = [0.0]*10 # tom y[]
-y_array = [0.0]*10 # tom y[]
+x = [0.0]*10 # tom y[]
+x_avg = [0.0]*10
+y = [0.0]*10 # tom y[]
+y_avg = [0.0]*10
+speed = [0.0]*2
 fps = 30
 sample_time = 1/fps # fps
 counter = 0
-grense = len(x_array)
+grense = len(x)
+distance_error = [0.0, 0.0]
 
 
 def ball_track(key1, queue):
@@ -103,18 +116,20 @@ def servo_control(key2, queue):
     if key2:
         print('Servo controls are initiated')
 
-    def find_average(matrise, input):
+    def find_average(matrise, input, avg):
         global counter
-
-        tot = 0
+        tot = 0.0
         counter = counter % grense
         matrise[counter] = input
         for I in range(len(matrise)):
             tot += matrise[I]
-        avg = tot / len(matrise)
-        print(avg)
+        avg[counter] = (tot / len(matrise))
+        # print(avg)
         counter += 1
-        return avg
+
+    def find_speed(avg, fix):
+        speed = (avg[counter - 1 - fix] - avg[counter - 3 - fix]) * 0.625 / (sample_time)
+        return speed
 
     def all_angle_assign(angle_passed1,angle_passed2,angle_passed3):
         global servo1_angle, servo2_angle, servo3_angle
@@ -125,14 +140,6 @@ def servo_control(key2, queue):
 
     root = Tk()
     root.resizable(0, 0)
-
-    # Husk å lage variabler for verdier som 28, 105 osv.
-    # 28 = max koordinat
-    # 105 er max akselerasjon på ballen
-    # 7 er kun en kostant som aldri forandrer seg, la ligge
-    # 4 er konstantlengde til l_horn, som er avstanden fra servo skrua til ytremutteren
-    # 17.5 er distansen mellom servoene 1 og 2 til 3
-    # 20 er distansen mellom hver og enkel servo
 
     def timerfunksjon():
         time_array[1] = time_array[0]
@@ -159,39 +166,27 @@ def servo_control(key2, queue):
             #print("Servo 1: ",round(servo_values[0],3),"Servo 2: ",round(servo_values[1],3),"Servo 3: ",round(servo_values[2],3))
         # have to fix a min/max regulation for servo_values ;)
 
-    def PDreg(x_error, y_error, K):
-        global velocity, servo_values, pos_y, pos_x
+    def PDreg(x_error, y_error):
+        global servo_values, pos_y, pos_x, distance_error, K, speed, counter, platform_angle
 
         if x_error == 'n' and y_error == 'i':
             return
         else:
             Regulator_values = [0] * 2
-
+            distance_error[1] = y_error[counter - 1] * 0.625
+            distance_error[0] = x_error[counter - 2] * 0.625
             for i in range(2):
-                distance_error = y_error if i == 0 else x_error
-                d = 17.5 if i == 0 else 20
 
-                # Derivator
-                velocity[i] = ((y_array[counter-1]-y_array[counter-2]) * (0.625/ sample_time)) if i == 0 else ((x_array[counter]-x_array[counter-1]) *( 0.625/ sample_time))
-
-                print('velocity x', velocity[0], 'velocity y', velocity[1])
-                #print('pos x', pos_x[0], 'pos y', pos_y[0])
+                d = 20.0 if i == 0 else 17.5
 
                 # regulator
-                platform_angle = math.radians(-K[0] * distance_error - K[1] * velocity[i])
-
-                #if distance_error == y_error:
-                #    pos_y[1] = pos_y[0]
-                #    pos_y[0] = y_error
-                #else:
-                #    pos_x[1] = pos_x[0]
-                #    pos_x[0] = x_error
-
+                platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i-1])
+                print(platform_angle)
                 # converts platform angle to servo angles and sends away
-                motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
-                Regulator_values[i] = -motor_angle  # indeks 0 er pitch og indeks 1 er roll
-            servo_values = [Regulator_values[0] - Regulator_values[1], Regulator_values[0] + Regulator_values[1],
-                            -Regulator_values[0]]
+                motor_angle = np.arcsin((d * np.sin(platform_angle)) / (4))
+                Regulator_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
+            servo_values = [-Regulator_values[0] + (0.5 * Regulator_values[1]), Regulator_values[0] + (0.5 * Regulator_values[1]),
+                            -Regulator_values[1]]
 
 
     def writeCoord():
@@ -199,16 +194,19 @@ def servo_control(key2, queue):
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
         """
         corrd_info = queue.get()
-        #print(corrd_info)
-        x_avg = find_average(x_array, corrd_info[0])
-        y_avg = find_average(y_array, corrd_info[1])
-        PDreg(x_avg, y_avg, K)
+
+        find_average(x, corrd_info[0], x_avg)
+        find_average(y, corrd_info[1], y_avg)
+        speed[0] = find_speed(y_avg, 0)
+        speed[1] = find_speed(x_avg, 1)
+        PDreg(x_avg, y_avg)
         #Preg(corrd_info[0], corrd_info[1])
 
         #print('servo 1:', servo_values[1],'servo 2:', servo_values[2],'servo 3', servo_values[0])
-        all_angle_assign(servo_values[1], servo_values[2], servo_values[0])
+        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
 
-        wait = delta_t - timerfunksjon()
+
+        wait = sample_time - timerfunksjon()
         time.sleep(wait)
 
 

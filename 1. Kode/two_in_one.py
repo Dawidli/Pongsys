@@ -47,6 +47,17 @@ width = 1280
 heigth = 720
 circle_test = np.zeros((heigth,width,3), np.uint8)
 circle_test[:,:] = (255,255,255)
+wc = 20 #hz
+Ts = 1/30
+
+b0 = wc/(wc*Ts + 1)
+b1 = - b0
+a0 = 1
+a1 = -(1/(wc*Ts + 1))
+
+velocity[i] = ((y_array[counter-1]-y_array[counter-2]) * (0.625/ sample_time)) if i == 0 else ((x_array[counter]-x_array[counter-1]) *( 0.625/ sample_time))
+
+velocity[i] = b0 * y_array[counter] + b1y_array[counter-1] + a0 * x_array[counter] + a1x_array[counter-1]
 
 center_coordinates = (610, 395)
 radius = 800
