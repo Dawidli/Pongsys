@@ -22,15 +22,15 @@ servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
 "kamera greier"
-width = 1280
-heigth = 720
-circle_test = np.zeros((heigth,width,3), np.uint8)
+width = 960
+heigth = 480
+circle_test = np.zeros((480,960,3), np.uint8)
 circle_test[:,:] = (255,255,255)
 
-center_coordinates = (630, 395)
-radius = 800
+center_coordinates = (427, 240)
+radius = 500
 color = (200, 0, 0)
-thickness = 940
+thickness = 200
 image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
 
 "FOR LAVPASS FILTER / BÅNDBEGRENSET DERIVASJONS FILTER KAN VI GÅ PÅ 12_DTFT OG PRAKSIS FILTER DESIGN"
@@ -42,7 +42,7 @@ delta_t = 1 / 100
 velocity = [0] # initial verdi
 pos_x = [0, 0]
 pos_y = [0, 0]
-K = [0.3, 0.005]
+K = [1, 0.00345]
 
 wc = 20 #hz
 Ts = 1/30
@@ -68,8 +68,11 @@ distance_error = [0.0, 0.0]
 def ball_track(key1, queue):
     camera_port = 0
     cap = cv2.VideoCapture(camera_port,cv2.CAP_DSHOW)
-    cap.set(3, 1280)
-    cap.set(4, 720)
+
+    cap.set(3, 960)
+    cap.set(4, 480)
+    cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
+
 
     get, img = cap.read()
     h, w, _ = img.shape
@@ -86,10 +89,13 @@ def ball_track(key1, queue):
     while True:
         get, img = cap.read()
         rotated = imutils.rotate(img, 7)
-        filter = cv2.addWeighted(rotated, 0.5, image, 0.5, 0)
-        imgColor, mask = myColorFinder.update(filter, hsvVals)
-        imgContour, countours = cvzone.findContours(filter, mask)
+        #filter = cv2.addWeighted(rotated, 0.5, circle_test, 0.5, 0)
+        #filter = np.concatenate((rotated, circle_test), axis = 0)
+        imgColor, mask = myColorFinder.update(rotated, hsvVals)
+        imgContour, countours = cvzone.findContours(rotated, mask)
 
+        #fps = img.get(cv2.cv.CV_CAP_PROP_FPS)
+        #print(fps)
         if countours:
             data = (countours[0]['center'][0] - center_point[0]) / 10, \
                    (h - countours[0]['center'][1] - center_point[1]) / 10, \
@@ -118,6 +124,7 @@ def servo_control(key2, queue):
 
     def find_average(matrise, input, avg):
         global counter
+
         tot = 0.0
         counter = counter % grense
         matrise[counter] = input
@@ -169,23 +176,21 @@ def servo_control(key2, queue):
     def PDreg(x_error, y_error):
         global servo_values, pos_y, pos_x, distance_error, K, speed, counter, platform_angle
 
-        if x_error == 'n' and y_error == 'i':
-            return
-        else:
-            Regulator_values = [0] * 2
-            distance_error[1] = y_error[counter - 1] * 0.625
-            distance_error[0] = x_error[counter - 2] * 0.625
-            for i in range(2):
 
-                d = 20.0 if i == 0 else 17.5
+        Regulator_values = [0] * 2
+        distance_error[1] = y_error[counter - 1] * 0.625
+        distance_error[0] = x_error[counter - 2] * 0.625
+        for i in range(2):
 
-                # regulator
-                platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i-1])
-                print(platform_angle)
-                # converts platform angle to servo angles and sends away
-                motor_angle = np.arcsin((d * np.sin(platform_angle)) / (4))
-                Regulator_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
-            servo_values = [-Regulator_values[0] + (0.5 * Regulator_values[1]), Regulator_values[0] + (0.5 * Regulator_values[1]),
+            d = 19.5 if i == 0 else 18.08
+
+            # regulator
+            platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i-1])
+            #print(platform_angle)
+            # converts platform angle to servo angles and sends away
+            motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2*4))
+            Regulator_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
+        servo_values = [-Regulator_values[0] + (0.549 * Regulator_values[1]), Regulator_values[0] + (0.549 * Regulator_values[1]),
                             -Regulator_values[1]]
 
 
@@ -194,20 +199,23 @@ def servo_control(key2, queue):
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
         """
         corrd_info = queue.get()
+        #print(corrd_info)
+        if corrd_info == 'nil':
+            return
+        else:
+            find_average(x, corrd_info[0], x_avg)
+            find_average(y, corrd_info[1], y_avg)
+            speed[0] = find_speed(y_avg, 0)
+            speed[1] = find_speed(x_avg, 1)
+            PDreg(x_avg, y_avg)
+            #Preg(corrd_info[0], corrd_info[1])
 
-        find_average(x, corrd_info[0], x_avg)
-        find_average(y, corrd_info[1], y_avg)
-        speed[0] = find_speed(y_avg, 0)
-        speed[1] = find_speed(x_avg, 1)
-        PDreg(x_avg, y_avg)
-        #Preg(corrd_info[0], corrd_info[1])
-
-        #print('servo 1:', servo_values[1],'servo 2:', servo_values[2],'servo 3', servo_values[0])
-        all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
+            #print('servo 1:', servo_values[1],'servo 2:', servo_values[2],'servo 3', servo_values[0])
+            all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
 
 
-        wait = sample_time - timerfunksjon()
-        time.sleep(wait)
+            wait = sample_time - timerfunksjon()
+            #time.sleep(wait)
 
 
 
@@ -237,9 +245,9 @@ def servo_control(key2, queue):
         elif ang3 < maxValue:
             ang3 = maxValue
 
-        angles: tuple = (round(ang1, 1),
-                         round(ang2, 1),
-                         round(ang3, 1))
+        angles: tuple = (round(ang1, 5), #orginalt 1 komma
+                         round(ang2, 5),
+                         round(ang3, 5))
 
         write_arduino(str(angles))
 
