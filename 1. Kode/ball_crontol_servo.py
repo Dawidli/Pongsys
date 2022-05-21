@@ -78,6 +78,12 @@ def ball_track(key1, queue):
 
 
 def servo_control(key2, queue):
+<<<<<<< Updated upstream
+=======
+    port_id = 'COM5'
+    # initialise serial interface
+    arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
+>>>>>>> Stashed changes
     if key2:
         print('Servo controls are initiated')
 
