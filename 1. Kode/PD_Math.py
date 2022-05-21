@@ -2,8 +2,8 @@ import math
 import numpy as np
 import time
 
-setling_time = 6
-overshoot = 20
+setling_time = 5
+overshoot = 5
 ms = time.time()*1000.0
 cycle_time = time.perf_counter()*1000.0 #ms - ms_old
 ms_old = ms
