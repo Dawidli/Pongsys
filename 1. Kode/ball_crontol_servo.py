@@ -21,17 +21,7 @@ servo2_angle = 0
 servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-"kamera greier"
-width = 960
-heigth = 480
-circle_test = np.zeros((480,960,3), np.uint8)
-circle_test[:,:] = (255,255,255)
 
-center_coordinates = (427, 240)
-radius = 500
-color = (200, 0, 0)
-thickness = 200
-image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
 
 "FOR LAVPASS FILTER / BÅNDBEGRENSET DERIVASJONS FILTER KAN VI GÅ PÅ 12_DTFT OG PRAKSIS FILTER DESIGN"
 
@@ -42,7 +32,9 @@ delta_t = 1 / 100
 velocity = [0] # initial verdi
 pos_x = [0, 0]
 pos_y = [0, 0]
-K = [1, 0.00345]
+K = [0.57, 0.0045885] #very cool stabiliet
+#K = [0.7581, 0.0061] # kritisk stabilt
+
 
 wc = 20 #hz
 Ts = 1/30
@@ -67,7 +59,7 @@ distance_error = [0.0, 0.0]
 
 def ball_track(key1, queue):
     camera_port = 0
-    cap = cv2.VideoCapture(camera_port,cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
 
     cap.set(3, 960)
     cap.set(4, 480)
@@ -81,16 +73,16 @@ def ball_track(key1, queue):
         print('Ball tracking is initiated')
 
     myColorFinder = ColorFinder(False)  # if you want to find the color and calibrate the program we use this *(Debugging)
-    hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}
+    hsvVals = {'hmin': 30, 'smin': 30, 'vmin': 65, 'hmax': 60, 'smax': 130, 'vmax': 255}
 
-    center_point = [626, 337, 2210] # center point of the plate, calibrated
+
+    center_point = [452, 275, 1090] # center point of the plate, calibrated
+
 
 
     while True:
         get, img = cap.read()
         rotated = imutils.rotate(img, 7)
-        #filter = cv2.addWeighted(rotated, 0.5, circle_test, 0.5, 0)
-        #filter = np.concatenate((rotated, circle_test), axis = 0)
         imgColor, mask = myColorFinder.update(rotated, hsvVals)
         imgContour, countours = cvzone.findContours(rotated, mask)
 
@@ -205,6 +197,10 @@ def servo_control(key2, queue):
         else:
             find_average(x, corrd_info[0], x_avg)
             find_average(y, corrd_info[1], y_avg)
+            print('x value:', x_avg)
+
+            print('y value:', y_avg)
+            print()
             speed[0] = find_speed(y_avg, 0)
             speed[1] = find_speed(x_avg, 1)
             PDreg(x_avg, y_avg)
@@ -215,7 +211,7 @@ def servo_control(key2, queue):
 
 
             wait = sample_time - timerfunksjon()
-            #time.sleep(wait)
+            time.sleep(wait)
 
 
 

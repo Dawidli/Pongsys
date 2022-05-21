@@ -43,35 +43,36 @@ width = int(h * scale_h)
 height = int(w * scale_w)
 dim = (width, height)
 resized = cv2.resize(sirkel, dim)"""
-width = 1280
-heigth = 720
+width = 852
+heigth = 480
 circle_test = np.zeros((heigth,width,3), np.uint8)
 circle_test[:,:] = (255,255,255)
 wc = 20 #hz
 Ts = 1/30
+mamma = cv2.imwrite('test', circle_test)
 
 b0 = wc/(wc*Ts + 1)
 b1 = - b0
 a0 = 1
 a1 = -(1/(wc*Ts + 1))
 
-velocity[i] = ((y_array[counter-1]-y_array[counter-2]) * (0.625/ sample_time)) if i == 0 else ((x_array[counter]-x_array[counter-1]) *( 0.625/ sample_time))
+#velocity[i] = ((y_array[counter-1]-y_array[counter-2]) * (0.625/ sample_time)) if i == 0 else ((x_array[counter]-x_array[counter-1]) *( 0.625/ sample_time))
 
-velocity[i] = b0 * y_array[counter] + b1y_array[counter-1] + a0 * x_array[counter] + a1x_array[counter-1]
+#velocity[i] = b0 * y_array[counter] + b1y_array[counter-1] + a0 * x_array[counter] + a1x_array[counter-1]
 
 center_coordinates = (610, 395)
 radius = 800
 color = (200, 0, 0)
 thickness = 940
-image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
+image = cv2.circle(mamma, center_coordinates, radius, color, thickness)
 
 
 
 def ball_track(key1, queue):
     camera_port = 0
     cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
-    cap.set(3, 1280)
-    cap.set(4, 720)
+    cap.set(3, 852)
+    cap.set(4, 480)
     get, img = cap.read()
     h, w, _ = img.shape
     print(h,w)
