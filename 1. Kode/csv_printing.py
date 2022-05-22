@@ -7,4 +7,3 @@ with open('eggs.csv', 'w', newline='') as csvfile:
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
     for i in range(10):
         spamwriter.writerow(x)
-#
