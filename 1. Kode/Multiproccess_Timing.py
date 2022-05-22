@@ -22,9 +22,6 @@ def multi_funksjon2(key, q2):
         print("I CAN ALSO COUNT !!! :D",x2)
 
 
-
-
-
 if __name__ == '__main__':
     key = 1
     key2 = 2
