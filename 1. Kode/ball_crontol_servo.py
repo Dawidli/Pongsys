@@ -23,17 +23,6 @@ servo2_angle = 0
 servo3_angle = -6.3
 all_angle = 0
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-"kamera greier"
-width = 960
-heigth = 480
-circle_test = np.zeros((480,960,3), np.uint8)
-circle_test[:,:] = (255,255,255)
-
-center_coordinates = (427, 240)
-radius = 500
-color = (200, 0, 0)
-thickness = 200
-image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
 
 
 "FOR LAVPASS FILTER / BÅNDBEGRENSET DERIVASJONS FILTER KAN VI GÅ PÅ 12_DTFT OG PRAKSIS FILTER DESIGN"
@@ -45,15 +34,6 @@ K = [0.57, 0.0045885] #very cool stabiliet
 #K = [0.7581, 0.0061] # kritisk stabilt
 L = 1000
 
-
-wc = 20 #hz
-Ts = 1/30
-wait = 0
-
-b0 = wc/(wc*Ts + 1)
-b1 = - b0
-a0 = 1
-a1 = -(1/(wc*Ts + 1))
 
 global counter
 x = [0.0]*10 # tom y[]
@@ -74,7 +54,7 @@ distance_error = [0.0, 0.0]
 def ball_track(key1, queue):
     camera_port = 0
     cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
-
+    cap.set(3, 960)
     cap.set(4, 480)
     cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 
