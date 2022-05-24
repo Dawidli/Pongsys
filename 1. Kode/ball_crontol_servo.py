@@ -1,3 +1,4 @@
+# @@ -1,272 +1,268 @@
 import multiprocessing as mp
 from multiprocessing import Queue
 import cvzone
@@ -5,146 +6,275 @@ from cvzone.ColorModule import ColorFinder
 import cv2
 import serial
 import math
+import numpy as np
 from tkinter import *
+import imutils
+import time
+import csv
 
 # -------------------------------------------Both programs(Servo Control and Ball Tracker) in one -------------------------------------------
 """
 For running both programs simultaneously we can use multithreading or multiprocessing
 """
 
-camera_port = 0
-cap = cv2.VideoCapture(camera_port)
-cap.set(3, 1280)
-cap.set(4, 720)
-
-get, img = cap.read()
-h, w, _ = img.shape
-
-port_id = '/dev/cu.usbmodem1411101'
-# initialise serial interface
-arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
-
-# define servo angles and set a value
+#define servo angles and set a value
 servo1_angle = 0
 servo2_angle = 0
-servo3_angle = 0
+servo3_angle = -6.3
 all_angle = 0
-
 # Set a limit to upto which you want to rotate the servos (You can do it according to your needs)
-servo1_angle_limit_positive = 90
-servo1_angle_limit_negative = -90
+"kamera greier"
+width = 960
+heigth = 480
+circle_test = np.zeros((480,960,3), np.uint8)
+circle_test[:,:] = (255,255,255)
 
-servo2_angle_limit_positive = 90
-servo2_angle_limit_negative = -90
+center_coordinates = (427, 240)
+radius = 500
+color = (200, 0, 0)
+thickness = 200
+image = cv2.circle(circle_test, center_coordinates, radius, color, thickness)
 
-servo3_angle_limit_positive = 90
-servo3_angle_limit_negative = -90
+
+"FOR LAVPASS FILTER / BÅNDBEGRENSET DERIVASJONS FILTER KAN VI GÅ PÅ 12_DTFT OG PRAKSIS FILTER DESIGN"
+
+time_array = [time.time()]*2
+
+platform_angle = 0 # intial
+delta_t = 1 / 100
+velocity = [0] # initial verdi
+pos_x = [0, 0]
+pos_y = [0, 0]
+K = [1, 0.00345]
+K = [0.57, 0.0045885] #very cool stabiliet
+#K = [0.7581, 0.0061] # kritisk stabilt
 
 
+wc = 20 #hz
+Ts = 1/30
+
+b0 = wc/(wc*Ts + 1)
+b1 = - b0
+a0 = 1
+a1 = -(1/(wc*Ts + 1))
+
+global counter
+x = [0.0]*10 # tom y[]
+x_avg = [0.0]*10
+y = [0.0]*10 # tom y[]
+y_avg = [0.0]*10
+speed = [0.0]*2
+fps = 30
+sample_time = 1/fps # fps
+counter = 0
+grense = len(x)
+distance_error = [0.0, 0.0]
 
 
 def ball_track(key1, queue):
+    camera_port = 0
+    cap = cv2.VideoCapture(camera_port,cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(camera_port, cv2.CAP_DSHOW)
+
+    cap.set(3, 960)
+    cap.set(4, 480)
+    cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
+
+
+    get, img = cap.read()
+    h, w, _ = img.shape
 
     if key1:
         print('Ball tracking is initiated')
 
     myColorFinder = ColorFinder(False)  # if you want to find the color and calibrate the program we use this *(Debugging)
-    hsvVals = {'hmin': 0, 'smin': 65, 'vmin': 219, 'hmax': 179, 'smax': 255, 'vmax': 255}
+    hsvVals = {'hmin': 0, 'smin': 0, 'vmin': 240, 'hmax': 180, 'smax': 15, 'vmax': 255}
+    hsvVals = {'hmin': 30, 'smin': 30, 'vmin': 65, 'hmax': 60, 'smax': 130, 'vmax': 255}
+
+
+    center_point = [452, 275, 1090] # center point of the plate, calibrated
 
     center_point = [626, 337, 2210] # center point of the plate, calibrated
 
 
     while True:
         get, img = cap.read()
-        imgColor, mask = myColorFinder.update(img, hsvVals)
-        imgContour, countours = cvzone.findContours(img, mask)
+        rotated = imutils.rotate(img, 7)
+        #filter = cv2.addWeighted(rotated, 0.5, circle_test, 0.5, 0)
+        #filter = np.concatenate((rotated, circle_test), axis = 0)
+        imgColor, mask = myColorFinder.update(rotated, hsvVals)
+        imgContour, countours = cvzone.findContours(rotated, mask)
 
+        #fps = img.get(cv2.cv.CV_CAP_PROP_FPS)
+        #print(fps)
         if countours:
-
-            data = round((countours[0]['center'][0] - center_point[0]) / 10), \
-                   round((h - countours[0]['center'][1] - center_point[1]) / 10), \
-                   round(int(countours[0]['area'] - center_point[2])/100)
-
+            data = (countours[0]['center'][0] - center_point[0]) / 10, \
+                   (h - countours[0]['center'][1] - center_point[1]) / 10, \
+                   int(countours[0]['area'] - center_point[2])/100
             queue.put(data)
-            #print("The got coordinates for the ball are :", data)
+
         else:
             data = 'nil' # returns nil if we cant find the ball
             queue.put(data)
 
+
         imgStack = cvzone.stackImages([imgContour], 1, 1)
         # imgStack = cvzone.stackImages([img,imgColor, mask, imgContour],2,0.5) #use for calibration and correction
         cv2.imshow("Image", imgStack)
+
         cv2.waitKey(1)
 
-# Husk å lage variabler for verdier som 28, 105 osv.
-# 28 = max koordinat
-# 105 er max akselerasjon på ballen
-# 7 er kun en kostant som aldri forandrer seg, la ligge
-# 4 er konstantlengde til l_horn, som er avstanden fra servo skrua til ytremutteren
-# 17.5 er distansen mellom servoene 1 og 2 til 3
-# 20 er distansen mellom hver og enkel servo
-
-def Preg(xverdi, yverdi):
-    Preg_values = [0]*2
-
-    for i in range(2):
-        dist = yverdi if i == 0 else xverdi
-        cord_ratio = dist/28
-        d = 17.5 if i == 0 else 20
-        platform_angle = (cord_ratio*105) / (7)
-        motor_angle = math.asin((d*math.sin(platform_angle))/(2*4))
-        Preg_values[i] = motor_angle        #indeks 0 er pitch og indeks 1 er roll
-
-    servo_values = [Preg_values[0]-Preg_values[1], Preg_values[0]+Preg_values[1], -Preg_values[0]]
-    # have to fix a min/max regulation for servo_values ;)
-    return servo_values
 
 
 def servo_control(key2, queue):
+    port_id = 'COM3'
+    # initialise serial interface
+    arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
     if key2:
         print('Servo controls are initiated')
 
+    def write_csv(x_cord, y_cord):
+        positions = [str(x_cord), ",", str(y_cord), ","]
+
+        with open('Koordinater.csv', 'w', newline='') as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=' ',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            for i in range(10):
+                spamwriter.writerow(x)
+
+
+    def find_average(matrise, input, avg):
+        global counter
+
+        tot = 0.0
+        counter = counter % grense
+        matrise[counter] = input
+        for I in range(len(matrise)):
+            tot += matrise[I]
+        avg[counter] = (tot / len(matrise))
+        # print(avg)
+        counter += 1
+
+    def find_speed(avg, fix):
+        speed = (avg[counter - 1 - fix] - avg[counter - 3 - fix]) * 0.625 / (sample_time)
+        return speed
 
     def all_angle_assign(angle_passed1,angle_passed2,angle_passed3):
         global servo1_angle, servo2_angle, servo3_angle
-        servo1_angle = math.radians(float(angle_passed1))
-        servo2_angle = math.radians(float(angle_passed2))
-        servo3_angle = math.radians(float(angle_passed3))
+        servo1_angle = float(angle_passed1)
+        servo2_angle = float(angle_passed2)
+        servo3_angle = float(angle_passed3)
         write_servo()
 
     root = Tk()
     root.resizable(0, 0)
+
+    def timerfunksjon():
+        time_array[1] = time_array[0]
+        time_array[0] = time.time()
+        cycle_time = (time_array[0] - time_array[1]) / 1000
+        return cycle_time
+
+    def Preg(xverdi, yverdi):
+        global servo_values
+
+        if xverdi == 'n' and yverdi == 'i':
+            return
+        else:
+            Preg_values = [0] * 2
+
+            for i in range(2):
+                dist = yverdi if i == 0 else xverdi
+                cord_ratio = dist / 28
+                d = 17.5 if i == 0 else 20
+                platform_angle = math.radians((cord_ratio * 105) / (7))
+                motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
+                Preg_values[i] = -motor_angle # indeks 0 er pitch og indeks 1 er roll
+            servo_values = [Preg_values[0] - Preg_values[1], Preg_values[0] + Preg_values[1], -Preg_values[0]]
+            #print("Servo 1: ",round(servo_values[0],3),"Servo 2: ",round(servo_values[1],3),"Servo 3: ",round(servo_values[2],3))
+        # have to fix a min/max regulation for servo_values ;)
+
+    def PDreg(x_error, y_error):
+        global servo_values, pos_y, pos_x, distance_error, K, speed, counter, platform_angle
+
+
+        Regulator_values = [0] * 2
+        distance_error[1] = y_error[counter - 1] * 0.625
+        distance_error[0] = x_error[counter - 2] * 0.625
+        for i in range(2):
+
+            d = 19.5 if i == 0 else 18.08
+
+            # regulator
+            platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i-1])
+            #print(platform_angle)
+            # converts platform angle to servo angles and sends away
+            motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2*4))
+            Regulator_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
+        servo_values = [-Regulator_values[0] + (0.549 * Regulator_values[1]), Regulator_values[0] + (0.549 * Regulator_values[1]),
+                            -Regulator_values[1]]
+
 
     def writeCoord():
         """
         Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
         """
         corrd_info = queue.get()
-
-        if corrd_info == 'nil': # Checks if the output is nil
-            print('cant fins the ball :(')
+        #print(corrd_info)
+        if corrd_info == 'nil':
+            return
         else:
-            print('The position of the ball : ', corrd_info[2])
+            write_csv(corrd_info[0], corrd_info[1])
+            find_average(x, corrd_info[0], x_avg)
+            find_average(y, corrd_info[1], y_avg)
+            print('x value:', x_avg)
 
-            if (-90 < corrd_info[0] < 90) and (-90 < corrd_info[1] < 90) and (-90 < corrd_info[2] < 90):
+            print('y value:', y_avg)
+            print()
+            speed[0] = find_speed(y_avg, 0)
+            speed[1] = find_speed(x_avg, 1)
+            PDreg(x_avg, y_avg)
+            #Preg(corrd_info[0], corrd_info[1])
 
-                all_angle_assign(corrd_info[0],corrd_info[1],corrd_info[2])
-            else:
-                all_angle_assign(0,0,0)
+            #print('servo 1:', servo_values[1],'servo 2:', servo_values[2],'servo 3', servo_values[0])
+            all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
+
+
+            wait = sample_time - timerfunksjon()
+            #time.sleep(wait)
+            time.sleep(wait)
+
+
 
     def write_arduino(data):
-        print('The angles send to the arduino : ', data)
+        #print('The angles send to the arduino : ', data)
 
         arduino.write(bytes(data, 'utf-8'))
 
     def write_servo():
-        ang1 = servo1_angle
-        ang2 = servo2_angle
-        ang3 = servo3_angle
+        ang1 = math.degrees(servo1_angle)
+        ang2 = math.degrees(servo2_angle)
+        ang3 = math.degrees(servo3_angle)
+        minValue = 30
+        maxValue = -30
+        if ang1 > minValue:
+            ang1 = minValue
+        elif ang1 < maxValue:
+            ang1 = maxValue
 
-        angles: tuple = (round(math.degrees(ang1), 1),
-                         round(math.degrees(ang2), 1),
-                         round(math.degrees(ang3), 1))
+        if ang2 > minValue:
+            ang2 = minValue
+        elif ang2 < maxValue:
+            ang2 = maxValue
+
+        if ang3 > minValue:
+            ang3 = minValue
+        elif ang3 < maxValue:
+            ang3 = maxValue
+
+        angles: tuple = (round(ang1, 5), #orginalt 1 komma
+                         round(ang2, 5),
+                         round(ang3, 5))
 
         write_arduino(str(angles))
 
@@ -164,3 +294,5 @@ if __name__ == '__main__':
     p2.start()
     p1.join()
     p2.join()
+
+
