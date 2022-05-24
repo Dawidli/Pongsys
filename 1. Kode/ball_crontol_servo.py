@@ -110,7 +110,7 @@ def servo_control(key2, queue):
 
     def find_speed(avg):
         global counter
-        speed = (avg[counter] - avg[counter]) / (sample_time)
+        speed = (avg[counter] - avg[counter-1]) / (sample_time)
 
         return speed
 
@@ -128,14 +128,14 @@ def servo_control(key2, queue):
         global servo_values, pos_y, pos_x, distance_error, K, speed, counter, platform_angle
 
         Regulator_values = [0] * 2
-        distance_error[1] = y_error[counter - 1]
-        distance_error[0] = x_error[counter - 2]
+        distance_error[1] = y_error[counter]
+        distance_error[0] = x_error[counter]
         for i in range(2):
             d = 20.2 if i == 0 else 17.5
 
             # regulator
-            platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i - 1])
-            # print(platform_angle)
+            platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i])
+
             # converts platform angle to servo angles and sends away
             motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
             Regulator_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
@@ -152,12 +152,12 @@ def servo_control(key2, queue):
         else:
             find_average(x, y, corrd_info[0], corrd_info[1], x_avg, y_avg)
 
-            speed[0] = find_speed(y_avg)
-            speed[1] = find_speed(x_avg)
-            counter += 1
+            speed[1] = find_speed(y_avg)
+            speed[0] = find_speed(x_avg)
             PDreg(x_avg, y_avg)
-            print('x=', x_avg)
-            print('y=', y_avg)
+            counter += 1
+            print('x=', speed[0])
+            print('y=', speed[1])
             print()
 
             all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
