@@ -9,7 +9,7 @@ import numpy as np
 from tkinter import *
 import imutils
 import time
-
+from scipy.signal import butter, lfilter, freqz
 
 #define servo angles and set a value
 servo1_angle = 0
@@ -24,7 +24,7 @@ delta_t = 1 / 100
 velocity = [0] # initial verdi
 pos_x = [0, 0]
 pos_y = [0, 0]
-K = [0.27, 0.002285] #very cool stabiliet
+K = [0.1, 0] #very cool stabiliet
 
 x = [0.0]*4 # tom y[]
 y = [0.0]*4 # tom y[]
@@ -36,6 +36,11 @@ grense = len(x)
 distance_error = [0.0, 0.0]
 fps = 30
 sample_time = 1/fps # fps
+
+# Setting standard filter requirements.
+order = 6
+fs = 17.0
+cutoff = 1.78
 
 
 def ball_track(key1, queue):
@@ -88,11 +93,23 @@ def ball_track(key1, queue):
 
 
 def servo_control(key2, queue):
+
     port_id = 'COM3'
     # initialise serial interface
     arduino = serial.Serial(port=port_id, baudrate=250000, timeout=0.1)
     if key2:
         print('Servo controls are initiated')
+
+    def butter_lowpass(cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = butter(order, normal_cutoff, btype='low', analog=False)
+        return b, a
+
+    def butter_lowpass_filter(data, cutoff, fs, order=5):
+        b, a = butter_lowpass(cutoff, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
 
     def find_average(x_matrise, y_matrise, x_cord, y_cord, x_avg, y_avg):
         global counter
@@ -152,9 +169,13 @@ def servo_control(key2, queue):
         else:
             find_average(x, y, corrd_info[0], corrd_info[1], x_avg, y_avg)
 
-            speed[1] = find_speed(y_avg)
-            speed[0] = find_speed(x_avg)
-            PDreg(x_avg, y_avg)
+            # Filtering and plotting
+            x_filtered = butter_lowpass_filter(x, cutoff, fs, order)
+            y_filtered = butter_lowpass_filter(y, cutoff, fs, order)
+
+            speed[1] = find_speed(y_filtered)
+            speed[0] = find_speed(x_filtered)
+            PDreg(x_filtered, y_filtered)
             counter += 1
             print('x=', speed[0])
             print('y=', speed[1])
