@@ -45,10 +45,8 @@ These are our own defined values that we use in functions
     |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   | 
     V   V   V   V   V   V   V   V   V   V   V   V   V   V   V   V
 '''
-
 # ______________________________________________________________________________
 time_array = [time.time()] * 2  # Save time values
-
 x = [0.0] * 4
 y = [0.0] * 4
 speed = [0.0] * 2
@@ -56,10 +54,23 @@ counter = 0
 grense = len(x)
 delta_t = 1 / 30
 distance_error = [0.0, 0.0]
-K = [0.5, 0.004]
+K = [0.3, 0.004]
+move_time = 90
+move_counter = 0
+pos_counter = 0
+refpos = [-0,-0]
+p0 = [10,10]
+p1 = [10,-10]
+p2 = [-10,-10]
+p3 = [-10,10]
+path = [p0,p1,p2,p3]
 
+do_you_want_path = False
 
 # ______________________________________________________________________________
+
+
+
 
 def ball_track(key1, queue):
     if key1:
@@ -114,20 +125,31 @@ def servo_control(key2, queue):
         return speed
 
     def PDreg(x_error, y_error):
-        global servo_values, distance_error, K, speed, counter, platform_angle
+        global servo_values, distance_error, K, speed, counter, platform_angle, refpos, move_counter, pos_counter
+        if(do_you_want_path):
+            if move_time <= move_counter:
+                refpos[0] = path[pos_counter][0]
+                refpos[1] = path[pos_counter][1]
+                pos_counter +=1
+                pos_counter = pos_counter % len(path)
+                move_counter = 0
+            else:
+                move_counter += 1
+
 
         Regulator_values = [0] * 2
-        distance_error[1] = y_error[counter]
-        distance_error[0] = x_error[counter]
+        distance_error[1] = y_error[counter] - refpos[0]
+        distance_error[0] = x_error[counter] - refpos[1]
         for i in range(2):
             d = 20.2 if i == 0 else 17.5
 
-            # regulator
+            # regulator u = -kx-kv
             platform_angle = math.radians(-K[0] * distance_error[i]) - (K[1] * speed[i])
 
-            # converts platform angle to servo angles and sends away
+            # converts platform angle to servo angles
             motor_angle = np.arcsin((d * np.sin(platform_angle)) / (2 * 4))
             Regulator_values[i] = motor_angle  # indeks 0 er pitch og indeks 1 er roll
+
         servo_values = [-Regulator_values[0] + (0.549 * Regulator_values[1]),
                         Regulator_values[0] + (0.549 * Regulator_values[1]),
                         -Regulator_values[1]]
@@ -136,12 +158,11 @@ def servo_control(key2, queue):
         global counter
         corrd_info = queue.get()
 
-        if corrd_info == 'nil':  # Checks if the output is nil
+        if corrd_info == 'nil':
             print('Give me my ball back! >:c')
         else:
-            """
-            Here in this function we get both coordinate and servo control, it is an ideal place to implement the controller
-            """
+
+# -----------------------THE THING UNDER IS YOUR CODE´S BRAIN SILLY ---------------------
             time_array[1] = time_array[0]
             time_array[0] = time.time()
             counter = counter % grense
@@ -151,15 +172,18 @@ def servo_control(key2, queue):
             speed[0] = find_speed(x)
             speed[1] = find_speed(y)
             PDreg(x, y)
-            counter += 1
 
-            print(x, y)
-            print('x=', speed[0])
-            print('y=', speed[1])
-            print(counter)
+            print('Angles sent to arduino:', np.degrees(servo1_angle), np.degrees(servo2_angle), np.degrees(servo3_angle))
+            print('Current position', round(x[counter],2), round(y[counter],2))
+            print('Current speed' , round(speed[0], 2), round(speed[1], 2))
+            print('Reference position is:', refpos)
+            print('Move counter',move_counter,'pos counter',pos_counter)
             print()
 
             all_angle_assign(servo_values[0], servo_values[1], servo_values[2])
+            counter += 1
+# -----------------------THE THING OVER IS YOUR CODE´S BRAIN SILLY ---------------------
+
 
     def write_arduino(data):
 
@@ -186,25 +210,23 @@ def servo_control(key2, queue):
         elif ang3 < maxValue:
             ang3 = maxValue
 
-        angles: tuple = (round(ang1, 5),  # orginalt 1 komma
+        angles: tuple = (round(ang1, 5),
                          round(ang2, 5),
                          round(ang3, 5))
-        print('The angles send to the arduino : ',angles)
-
         write_arduino(str(angles))
 
     while key2:
         writeCoord()
 
-    root.mainloop()  # running loop
+    root.mainloop()
 
 
 if __name__ == '__main__':
-    queue = Queue()  # The queue is done inorder for the communication between the two processes.
-    key1 = 1  # just two dummy arguments passed for the processes
+    queue = Queue()
+    key1 = 1
     key2 = 2
-    p1 = mp.Process(target=ball_track, args=(key1, queue))  # initiate ball tracking process
-    p2 = mp.Process(target=servo_control, args=(key2, queue))  # initiate servo controls
+    p1 = mp.Process(target=ball_track, args=(key1, queue))
+    p2 = mp.Process(target=servo_control, args=(key2, queue))
     p1.start()
     p2.start()
     p1.join()
