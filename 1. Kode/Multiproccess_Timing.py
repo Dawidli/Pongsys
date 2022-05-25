@@ -20,6 +20,7 @@ def multi_funksjon2(key, q2):
         x2 += 4
         q2.put(x2)
         print("I CAN ALSO COUNT !!! :D",x2)
+        
 
 
 if __name__ == '__main__':
