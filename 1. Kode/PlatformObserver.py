@@ -55,7 +55,8 @@ counter = 0
 grense = len(x)
 delta_t = 1 / 30
 distance_error = [0.0, 0.0]
-K = [0.5, 0.008]
+#K = [0.3, 0.004]
+K = [0.5, 0.005] # THIAS WORKS!!!! FOR OBSERVER
 #K = [0.2, 0]
 move_time = 90
 move_counter = 0
@@ -75,7 +76,8 @@ pre_platform_angle = [0, 0]
 estimated_acc = [0, 0]
 estimated_velocity = [0, 0]
 estimated_pos = [0, 0]
-L = [2.33*2, 2.8*95]
+#L = [2.33*2, 2.8*95]
+L = [2.33*2, 2.8*75]
 
 # ______________________________________________________________________________
 
@@ -195,11 +197,11 @@ def servo_control(key2, queue):
 
             # integrator - finner velocity
             estimated_velocity[i] += delta_t * (estimated_acc[i] + L[1] * (distance_error[i] - estimated_pos[i]))
-            print(L[1] * (distance_error[i] - estimated_pos[i]))
-            if estimated_velocity[i] >= 120:
-                estimated_velocity[i] = 120
-            elif estimated_velocity[i] <= -120:
-                estimated_velocity[i] = -120
+            limit = 70
+            if estimated_velocity[i] >= limit:
+                estimated_velocity[i] = limit
+            elif estimated_velocity[i] <= -limit:
+                estimated_velocity[i] = -limit
 
             #integrator - finner position
             estimated_pos[i] += delta_t * (estimated_velocity[i] + L[0] * (distance_error[i] - estimated_pos[i]))
